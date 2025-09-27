@@ -1,10 +1,18 @@
 # Unity C# Coding Standards
 
-This repository contains coding standards and guidelines for Unity C# development.
+## Introduction
+
+These coding standards represent recommendations born from 20 years of game development experience. They are opinions I've formed and refined throughout my career, and they continue to evolve as I learn and as the industry progresses.
+
+**An Important Note on Adaptation:**
+
+When working as part of an established team, **it is crucial to adapt to the team's existing coding standards**, even if they differ from these recommendations. Consistency within a codebase is more valuable than individual preference. However, when provided with an opportunity to set standards, provide guidance, or start fresh on a new project, these are the ever-evolving standards that I hold myself to.
+
+These standards are shared openly in the hope that they may be useful to others, but they should be adapted and modified to suit your team's needs and context.
 
 ## Foundation
 
-Our coding standards are based on [Microsoft's C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) and [.NET Naming Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines), with specific adaptations for Unity development and team preferences.
+These coding standards are based on [Microsoft's C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) and [.NET Naming Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines), with specific adaptations for Unity development and team preferences.
 
 ## Quick Reference
 
@@ -65,7 +73,7 @@ Our coding standards are based on [Microsoft's C# Coding Conventions](https://le
 - [Unity Project Organization](#unity-project-organization)
 - [Commenting and Documentation](#commenting-and-documentation)
 - [Version Control](#version-control)
-- [AI-Assisted Development](#ai-assisted-development)
+- [AI-Assisted Development (Vibe Coding)](#ai-assisted-development)
 
 ---
 
@@ -1336,7 +1344,7 @@ git commit -m "Updates"
 
 ---
 
-## AI-Assisted Development
+## AI-Assisted Development (Vibe Coding)
 
 ### Philosophy
 
