@@ -1,0 +1,14 @@
+# AI Assistant Configuration
+.claude/
+.cursor/
+.copilot/
+.aider/
+**/CLAUDE_TEMP.md
+**/.ai-context/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
