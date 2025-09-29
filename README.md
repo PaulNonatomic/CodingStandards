@@ -793,21 +793,6 @@ public class InteractionHandler : MonoBehaviour
 }
 ```
 
-**Validation with Required Attribute:**
-
-Use the `[RequireComponent]` attribute to ensure components exist:
-
-```csharp
-[RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(CapsuleCollider))]
-public class CharacterMotor : MonoBehaviour
-{
-	// These components are guaranteed to exist
-	[SerializeField] private Rigidbody _rigidbody;
-	[SerializeField] private CapsuleCollider _collider;
-}
-```
-
 **Runtime Validation:**
 
 Validate references are set using OnValidate (editor) or Awake (runtime):
