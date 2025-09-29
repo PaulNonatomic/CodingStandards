@@ -79,6 +79,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - [Commenting and Documentation](#commenting-and-documentation)
 - [Version Control](#version-control)
 - [AI-Assisted Development (Vibe Coding)](#ai-assisted-development)
+- [Professional Practices](#professional-practices)
 
 ---
 
@@ -2402,6 +2403,116 @@ Work with AI iteratively:
 - Force specific AI tools on team members
 
 **Remember:** AI is a powerful assistant, but you are the developer. Your understanding, judgment, and responsibility for the code remain paramount.
+
+---
+
+## Professional Practices
+
+### The Art of Asking Questions
+
+**Ask questions, but earn the right to ask them through effort.**
+
+This section might seem out of place in a coding standards document, but I've come to realize it's just as important as any formatting rule. Learning when and how to ask questions is a critical skill that affects team productivity and your own growth as a developer.
+
+#### My Perspective as a Lead
+
+As a senior/lead developer, I genuinely want people to ask me questions. I mean it. There's nothing worse than someone struggling in silence for days when a five-minute conversation could have unblocked them. But here's the thing I've learned from being on both sides of this equation: questions have a cost.
+
+When someone asks me a question, it's not just the time to answer—it's the mental context switch. I might be deep in debugging something complex, and switching gears to answer a question can cost me 15-30 minutes of rebuilt mental state after you leave. I'm happy to pay that cost, but I need to know you've tried to minimize it.
+
+#### The "15-Minute Rule" (My Personal Threshold)
+
+Before asking a question, spend at least 15 minutes trying to answer it yourself. This isn't arbitrary—it's about demonstrating respect for others' time while maximizing your own learning. Here's what those 15 minutes should look like:
+
+**First 5 minutes - Check the obvious:**
+- Read the error message (really read it, not just glance)
+- Google the exact error
+- Check the documentation
+- Look for similar code in the codebase
+
+**Next 5 minutes - Dig deeper:**
+- Set a breakpoint and inspect variables
+- Check the Git history—has someone solved this before?
+- Read the related code, not just the line that's breaking
+- Try the simplest possible fix, even if it seems wrong
+
+**Final 5 minutes - Prepare your question:**
+- Write down what you've tried
+- Identify what specifically you don't understand
+- Create a minimal reproduction if possible
+- Think about how you'll ask the question
+
+#### How to Ask Questions (When It's Time)
+
+If you've done the work and you're still stuck, here's how to make the interruption worthwhile for both of us:
+
+```csharp
+// Bad question:
+"The user system isn't working. Can you help?"
+
+// Good question:
+"I'm getting a null reference exception in UserManager.cs:45 when 
+logging in with a new user. I've verified the user object exists,
+the database connection is valid, and the same code works for 
+existing users. I suspect it's related to the initialization order
+but I can't find where new users get their default settings.
+Could you point me toward where that happens?"
+```
+
+The good question shows:
+- You've identified the specific problem
+- You've done debugging work
+- You've formed a hypothesis
+- You need a specific piece of information
+
+#### The Questions You Should Ask Immediately
+
+Not all questions deserve 15 minutes of struggle. Skip the research for:
+
+- **Architectural decisions** - "Should user management be its own service?"
+- **Business logic** - "What should happen when a user's subscription expires?"
+- **Permission/access issues** - "I can't access the staging server"
+- **Undocumented tribal knowledge** - "Why do we always use ServiceLocator instead of injection here?"
+
+These questions often have answers that you couldn't derive on your own, and struggling with them wastes everyone's time.
+
+#### Growing Your Question-Asking Skills
+
+Early in your career, you might need to ask more questions—that's expected and encouraged. But as you grow, the questions should evolve:
+
+**Junior questions (perfectly valid):**
+- "How do I set up the development environment?"
+- "What's the difference between these two patterns?"
+- "Is this the right approach?"
+
+**Senior questions (what you grow toward):**
+- "I'm considering X and Y approaches. X is cleaner but Y performs better. Given our constraints, which trade-off should we prefer?"
+- "I've traced this bug to a race condition between systems A and B. Before I refactor, is there historical context I should know?"
+- "I'm about to make an architectural decision that will affect three teams. Who should I loop in?"
+
+#### Creating a Question-Friendly Environment
+
+If you're the senior being asked questions:
+
+- **Never shame someone for asking** - Even if they should have figured it out
+- **Reward good questions** - "Great question, you've clearly thought about this"
+- **Teach the research process** - "Let me show you how I'd figure this out"
+- **Be honest about availability** - "I'm in deep focus mode until 3 PM, can it wait?"
+- **Document answers** - If you're asked twice, it should be in the README
+
+#### The Paradox of Question-Asking
+
+Here's something I've noticed: the people who are most hesitant to ask questions are often the ones whose questions I most want to hear. They've done the work, they're thoughtful, and their questions often reveal issues I hadn't considered.
+
+Meanwhile, the people who ask questions immediately without any effort? They're usually the same ones who won't remember the answer because they haven't struggled enough to create the mental framework to hold the knowledge.
+
+#### My Personal Evolution
+
+I used to pride myself on never asking questions, figuring everything out on my own. It felt like strength. Now I realize it was actually a weakness—I wasted days on problems that could have been solved in minutes. The real strength is knowing when you've hit the point of diminishing returns on solo effort.
+
+These days, I follow my own 15-minute rule religiously. Sometimes I solve it in minute 14 and feel brilliant. Sometimes I ask the question and discover there was no way I could have known the answer. Both outcomes are victories.
+
+The key insight: **Asking good questions is a skill that shows respect for everyone's time, including your own.**
 
 ---
 
