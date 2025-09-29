@@ -29,6 +29,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Access modifiers**: Always explicit (`private`, `public`, etc.)
 - **Type inference**: Use `var` when type is clear from context
 - **Attributes**: Inline with properties, above methods
+- **Brace style**: Non-cuddled/Allman style (opening brace on new line)
 - **Braces**: Always use for multi-line blocks; omit only for single-line guard clauses
 - **Using statements**: Prefer `using var` declarations over block-scoped
 
@@ -230,6 +231,47 @@ Complex<Nested<Generic>> result = CalculateComplexResult();
 **Rationale:** Simplifies refactoring when types change and removes duplicate information. Improves readability by avoiding repeated type names of varying lengths.
 
 **Note:** While IDEs display inferred types on hover, consider explicit types when the inferred type is complex or unclear, particularly for code reviews conducted outside the IDE (terminal, GitHub, etc.).
+
+### Brace Style (Non-Cuddled/Allman Style)
+
+**Use non-cuddled braces (Allman style) - opening braces on their own line.**
+
+The non-cuddled style places opening braces on a new line, aligning them vertically with their closing braces. This creates clearer visual boundaries for code blocks and improves readability by making the start and end of blocks immediately apparent.
+
+```csharp
+// Good - non-cuddled/Allman style
+if (health <= 0)
+{
+	Die();
+	return;
+}
+
+public void ProcessPlayer(Player player)
+{
+	if (player == null) 
+	{
+		return;
+	}
+	
+	UpdatePlayerState(player);
+}
+
+// Avoid - cuddled braces (K&R style)
+if (health <= 0) {
+	Die();
+	return;
+}
+
+public void ProcessPlayer(Player player) {
+	if (player == null) {
+		return;
+	}
+	
+	UpdatePlayerState(player);
+}
+```
+
+**Rationale:** Non-cuddled braces create a clear visual structure where the vertical alignment of opening and closing braces makes it easier to identify code block boundaries, especially in complex nested structures.
 
 ### Control Flow Statements
 
