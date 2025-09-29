@@ -110,8 +110,15 @@ public interface IHealthSystem { }
 - Use verb-based names that describe the action
 
 ```csharp
-public void CalculateDamage() { }
-public async UniTask LoadSceneAsync(CancellationToken cancellationToken) { }
+public void CalculateDamage()
+{
+	// Implementation
+}
+
+public async UniTask LoadSceneAsync(CancellationToken cancellationToken)
+{
+	// Implementation
+}
 ```
 
 ### Properties and Fields
@@ -163,21 +170,21 @@ While Unity's modern coding standards (like Microsoft's) don't use Hungarian not
 // Sometimes seen in older tutorials or legacy code
 public class Example : MonoBehaviour
 {
-    public GameObject goPlayer;      // Hungarian notation
-    public Transform tTarget;        // Type prefix
-    private float m_Speed = 5.0f;    // C++ style member prefix
-    private int iHealth = 100;       // Hungarian notation
-    private string strPlayerName;    // Type prefix
+	public GameObject goPlayer;      // Hungarian notation
+	public Transform tTarget;        // Type prefix
+	private float m_Speed = 5.0f;    // C++ style member prefix
+	private int iHealth = 100;       // Hungarian notation
+	private string strPlayerName;    // Type prefix
 }
 
 // My preference - descriptive names without type prefixes
 public class Example : MonoBehaviour
 {
-    public GameObject player;
-    public Transform target;
-    private float _speed = 5.0f;
-    private int _health = 100;
-    private string _playerName;
+	public GameObject Player { get; set; }
+	public Transform Target { get; set; }
+	private float _speed = 5.0f;
+	private int _health = 100;
+	private string _playerName;
 }
 ```
 
@@ -205,21 +212,21 @@ I've spent too much time staring at variables like `plrMgr` wondering "Is that P
 // Avoid - cryptic abbreviations
 public class GameController
 {
-    private PlrMgr plrMgr;
-    private EnemyCtrl enemCtrl;
-    private int maxPlrs = 4;
-    private float respTmr;
-    private bool canRspn;
+	private PlrMgr _plrMgr;
+	private EnemyCtrl _enemCtrl;
+	private int _maxPlrs = 4;
+	private float _respTmr;
+	private bool _canRspn;
 }
 
 // Good - clear, spelled-out names
 public class GameController
 {
-    [SerializeField] private PlayerManager _playerManager;
-    [SerializeField] private EnemyController _enemyController;
-    private int _maxPlayers = 4;
-    private float _respawnTimer;
-    private bool _canRespawn;
+	[SerializeField] private PlayerManager _playerManager;
+	[SerializeField] private EnemyController _enemyController;
+	private int _maxPlayers = 4;
+	private float _respawnTimer;
+	private bool _canRespawn;
 }
 ```
 
@@ -236,10 +243,10 @@ public class GameController
 Sometimes abbreviations are so universal that spelling them out would be weird:
 ```csharp
 // These are fine - universally understood
-UI userInterface;       // UI is clearer than UserInterface
-API apiEndpoint;       // Everyone knows API
-GUI guiManager;        // GUI is the standard term
-AI aiController;       // AI is more recognizable
+private UI _userInterface;      // UI is clearer than UserInterface
+private API _apiEndpoint;       // Everyone knows API
+private GUI _guiManager;        // GUI is the standard term
+private AI _aiController;       // AI is more recognizable
 ```
 
 **Mathematical contexts are different:**
@@ -250,25 +257,25 @@ In mathematical or algebraic functions, single letters or standard mathematical 
 // Good - matches mathematical convention
 public float CalculateDistance(Vector3 a, Vector3 b)
 {
-    float dx = b.x - a.x;
-    float dy = b.y - a.y;
-    float dz = b.z - a.z;
-    return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
+	float dx = b.x - a.x;
+	float dy = b.y - a.y;
+	float dz = b.z - a.z;
+	return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 // Good - standard physics abbreviations in physics context
 public void ApplyForce(float m, Vector3 a) // mass, acceleration
 {
-    Vector3 f = m * a; // f = ma is universally understood
-    _rigidbody.AddForce(f);
+	Vector3 f = m * a; // f = ma is universally understood
+	_rigidbody.AddForce(f);
 }
 
 // Overly verbose for mathematical context
 public float CalculateDistance(Vector3 firstPoint, Vector3 secondPoint)
 {
-    float differenceInX = secondPoint.x - firstPoint.x;
-    float differenceInY = secondPoint.y - firstPoint.y;
-    // This actually makes the formula harder to read
+	float differenceInX = secondPoint.x - firstPoint.x;
+	float differenceInY = secondPoint.y - firstPoint.y;
+	// This actually makes the formula harder to read
 }
 ```
 
@@ -280,16 +287,16 @@ I still use `i`, `j`, `k` for simple loop counters. It's a convention as old as 
 // This is fine - universal convention
 for (int i = 0; i < items.Count; i++)
 {
-    ProcessItem(items[i]);
+	ProcessItem(items[i]);
 }
 
 // But for nested loops, consider being clearer
 for (int row = 0; row < grid.Height; row++)
 {
-    for (int col = 0; col < grid.Width; col++)
-    {
-        grid[row, col] = initialValue;
-    }
+	for (int col = 0; col < grid.Width; col++)
+	{
+		grid[row, col] = initialValue;
+	}
 }
 ```
 
@@ -351,10 +358,13 @@ This is an area of continued self-questioning. Tabs are preferred for visual cla
 // Good - explicit intent
 private int _health;
 public string Name { get; private set; }
-private void UpdateHealth() { }
+private void UpdateHealth()
+{
+	// Implementation
+}
 
 // Avoid - implicit access modifier
-int _health;
+int _health; // Should be: private int _health;
 ```
 
 **Rationale:** Highlights coder intent and maintains readability through consistency.
@@ -448,13 +458,13 @@ Dean's argument was that dropping brackets onto a new line could cause bugs—an
 // JavaScript - This breaks with non-cuddley!
 return
 {
-    success: true
+	success: true
 };
 // JavaScript inserts a semicolon after 'return', returning undefined!
 
 // Must use cuddley style in JavaScript for this case
 return {
-    success: true
+	success: true
 };
 ```
 
@@ -560,23 +570,56 @@ public class PlayerController : MonoBehaviour
 {
 	#region Health Management
 	private int _health;
-	public void TakeDamage(int amount) { } // Simplified for example
-	public void Heal(int amount) { } // Simplified for example
-	private void Die() { } // Simplified for example
+	public void TakeDamage(int amount)
+	{
+		// Implementation
+	}
+	
+	public void Heal(int amount)
+	{
+		// Implementation
+	}
+	
+	private void Die()
+	{
+		// Implementation
+	}
 	#endregion
 	
 	#region Movement
 	private Vector3 _velocity;
-	public void Move(Vector3 direction) { } // Simplified for example
-	public void Jump() { } // Simplified for example
-	private void ApplyGravity() { } // Simplified for example
+	public void Move(Vector3 direction)
+	{
+		// Implementation
+	}
+	
+	public void Jump()
+	{
+		// Implementation
+	}
+	
+	private void ApplyGravity()
+	{
+		// Implementation
+	}
 	#endregion
 	
 	#region Inventory
 	private List<Item> _items;
-	public void AddItem(Item item) { } // Simplified for example
-	public void RemoveItem(Item item) { } // Simplified for example
-	private void SortInventory() { } // Simplified for example
+	public void AddItem(Item item)
+	{
+		// Implementation
+	}
+	
+	public void RemoveItem(Item item)
+	{
+		// Implementation
+	}
+	
+	private void SortInventory()
+	{
+		// Implementation
+	}
 	#endregion
 }
 
@@ -882,8 +925,8 @@ public bool IsPlayerEligibleForReward()
 
 // Avoid - micro-optimized but less clear
 public bool IsPlayerEligibleForReward() =>
-	_questSystem.IsQuestComplete(questId) && _player.Level >= requiredLevel && 
-	!_rewardSystem.HasClaimed(rewardId);
+	_questSystem.IsQuestComplete(_currentQuestId) && _player.Level >= 10 && 
+	!_rewardSystem.HasClaimed(_currentRewardId);
 ```
 
 ---
@@ -1256,7 +1299,7 @@ This is an area where my thinking has evolved significantly over the years. I wa
 
 #### My Journey with Messaging Systems
 
-I'll be honest—early in my career, I thought messaging systems were the answer to everything. The promise of perfectly decoupled systems was intoxicating:
+I'll be honest—early in my career, I thought messaging systems were the answer to everything.
 
 ```csharp
 // The allure of messaging systems - everything is decoupled!
@@ -1267,7 +1310,9 @@ public class GameEventBus
 	public static void Subscribe<T>(Action<T> handler)
 	{
 		if (!_subscribers.ContainsKey(typeof(T)))
+		{
 			_subscribers[typeof(T)] = new List<Delegate>();
+		}
 		_subscribers[typeof(T)].Add(handler);
 	}
 	
@@ -1276,7 +1321,9 @@ public class GameEventBus
 		if (_subscribers.TryGetValue(typeof(T), out var handlers))
 		{
 			foreach (Action<T> handler in handlers)
+			{
 				handler?.Invoke(message);
+			}
 		}
 	}
 }
@@ -1323,13 +1370,13 @@ Yes, messaging systems create *syntactic* decoupling—your classes don't direct
 // This looks decoupled...
 public class PlayerController : MonoBehaviour
 {
-    void TakeDamage(int amount)
-    {
-        EventBus.Publish(new PlayerDamagedMessage { Amount = amount });
-        // But who's listening? What order will they process?
-        // What if someone needs the damage source?
-        // What if we need to know if the damage was blocked?
-    }
+	private void TakeDamage(int amount)
+	{
+		EventBus.Publish(new PlayerDamagedMessage { Amount = amount });
+		// But who's listening? What order will they process?
+		// What if someone needs the damage source?
+		// What if we need to know if the damage was blocked?
+	}
 }
 
 // But it's actually creating worse coupling:
@@ -1354,25 +1401,27 @@ In practice, "decoupled" messaging systems often end up with:
 // False decoupling - hidden dependencies via messages
 public class HealthBar : MonoBehaviour
 {
-    void Start()
-    {
-        EventBus.Subscribe<PlayerDamagedMessage>(OnDamaged);
-        EventBus.Subscribe<PlayerHealedMessage>(OnHealed);
-        EventBus.Subscribe<PlayerRespawnedMessage>(OnRespawned);
-        // Secretly depends on PlayerController, just indirectly
-    }
+	private void Start()
+	{
+		EventBus.Subscribe<PlayerDamagedMessage>(OnDamaged);
+		EventBus.Subscribe<PlayerHealedMessage>(OnHealed);
+		EventBus.Subscribe<PlayerRespawnedMessage>(OnRespawned);
+		// Secretly depends on PlayerController, just indirectly
+	}
 }
 
 // True decoupling - explicit interface
 public class HealthBar : MonoBehaviour
 {
-    [SerializeField] private IHealth _healthSource; // Could be player, enemy, anything
-    
-    void Start()
-    {
-        if (_healthSource != null)
-            _healthSource.OnHealthChanged += UpdateDisplay;
-    }
+	[SerializeField] private IHealth _healthSource; // Could be player, enemy, anything
+	
+	private void Start()
+	{
+		if (_healthSource != null)
+		{
+			_healthSource.OnHealthChanged += UpdateDisplay;
+		}
+	}
 }
 ```
 
@@ -1858,14 +1907,22 @@ public interface IAttacker
 // Player/Source/Runtime/ (Player.Runtime.asmdef references Common.Runtime)
 public class Player : MonoBehaviour, IDamageable, IAttacker
 {
-	public void TakeDamage(int amount) { }
+	public void TakeDamage(int amount)
+	{
+		// Implementation
+	}
+	
 	public int AttackPower => 10;
 }
 
 // Enemy/Source/Runtime/ (Enemy.Runtime.asmdef references Common.Runtime)
 public class Enemy : MonoBehaviour, IDamageable, IAttacker
 {
-	public void TakeDamage(int amount) { }
+	public void TakeDamage(int amount)
+	{
+		// Implementation
+	}
+	
 	public int AttackPower => 5;
 }
 ```
