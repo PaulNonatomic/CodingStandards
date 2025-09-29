@@ -43,6 +43,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 ### Unity Guidelines
 - **Component assignment**: Prefer Inspector assignment over GetComponent
 - **Component communication**: Choose pattern based on context (optional vs critical)
+- **Messaging systems**: Use sparingly - prefer direct communication or intermediaries
 - **Async/await**: Prefer over coroutines
 - **UniTask**: Use for async operations with Unity lifecycle integration
 - **DOTween**: Use with UniTask extension for awaitable tweens
@@ -1074,6 +1075,230 @@ public class HealthDisplay : MonoBehaviour
 ```
 
 **Key Principle:** Choose the pattern that best matches your component's relationship and requirements. Critical, owned components benefit from direct control, while optional, modular components thrive with lookup patterns.
+
+### Messaging Systems vs Direct Communication
+
+**Consider carefully before implementing messaging systems - often direct communication or dedicated intermediaries are clearer.**
+
+While messaging systems (event buses, message brokers) promise decoupling, they often introduce hidden complexity. The evolution away from messaging systems toward more explicit communication patterns reflects a preference for clarity over cleverness.
+
+#### The Messaging System Trap
+
+Early in many developers' journeys, messaging systems seem like the perfect solution:
+
+```csharp
+// The allure of messaging systems - everything is decoupled!
+public class GameEventBus
+{
+	private static Dictionary<Type, List<Delegate>> _subscribers = new();
+	
+	public static void Subscribe<T>(Action<T> handler)
+	{
+		if (!_subscribers.ContainsKey(typeof(T)))
+			_subscribers[typeof(T)] = new List<Delegate>();
+		_subscribers[typeof(T)].Add(handler);
+	}
+	
+	public static void Publish<T>(T message)
+	{
+		if (_subscribers.TryGetValue(typeof(T), out var handlers))
+		{
+			foreach (Action<T> handler in handlers)
+				handler?.Invoke(message);
+		}
+	}
+}
+
+// Usage seems simple and decoupled
+public class ScoreManager : MonoBehaviour
+{
+	private void Start()
+	{
+		GameEventBus.Subscribe<EnemyKilledMessage>(OnEnemyKilled);
+	}
+	
+	private void OnEnemyKilled(EnemyKilledMessage msg)
+	{
+		AddScore(msg.Points);
+	}
+}
+```
+
+**Problems that emerge:**
+- **Hidden dependencies** - Can't see connections between systems in IDE
+- **Debugging nightmare** - Stack traces don't show the full communication chain
+- **Race conditions** - Message ordering and timing becomes critical
+- **Memory leaks** - Forgotten unsubscribes cause retained references
+- **Type proliferation** - Explosion of message types for every interaction
+- **"Magic" code** - New developers can't understand system flow
+
+#### Evolution Toward Explicit Communication
+
+As systems mature, explicit patterns often prove superior:
+
+```csharp
+// Better - Direct dependency with interface
+public class ScoreManager : MonoBehaviour
+{
+	private IEnemySystem _enemySystem;
+	
+	private void Start()
+	{
+		_enemySystem = ServiceLocator.Get<IEnemySystem>();
+		_enemySystem.OnEnemyKilled += HandleEnemyKilled;
+	}
+	
+	private void HandleEnemyKilled(Enemy enemy, int points)
+	{
+		AddScore(points);
+		// Clear, traceable, debuggable
+	}
+}
+```
+
+#### When Messaging Systems Make Sense
+
+Messaging systems still have their place for specific scenarios:
+
+**1. True Broadcasting (1-to-Many Unknown)**
+```csharp
+// Achievement system - unknown number of achievement listeners
+public interface IAchievementEvent { }
+
+public class FirstBloodAchievement : IAchievementEvent
+{
+	public string PlayerId { get; set; }
+	public float TimeElapsed { get; set; }
+}
+
+// Multiple systems might care, but we don't know which
+// Analytics, UI, Save System, Steam Integration, etc.
+```
+
+**2. Cross-Scene Communication**
+```csharp
+// When systems span multiple scenes
+public class CrossSceneEventBus
+{
+	// Useful when you can't have direct references
+	// But consider if ScriptableObject events might be better
+}
+```
+
+**3. Modding/Plugin Architecture**
+```csharp
+// When external code needs to hook into your systems
+public class ModEventSystem
+{
+	// Mods can subscribe without modifying core game
+}
+```
+
+#### The Service Locator + Interfaces Sweet Spot
+
+The combination of Service Locator pattern with explicit interfaces often provides the right balance:
+
+```csharp
+// Clear contracts without tight coupling
+public interface IPlayerHealth
+{
+	float Current { get; }
+	float Max { get; }
+	event Action<float> OnHealthChanged;
+	event Action OnDeath;
+}
+
+public interface ICombatLog
+{
+	void LogDamage(GameObject source, GameObject target, float damage);
+	void LogDeath(GameObject victim, GameObject killer);
+}
+
+// Systems declare what they need explicitly
+public class DamageNumberUI : MonoBehaviour
+{
+	private ICombatLog _combatLog;
+	
+	private void Start()
+	{
+		// Explicit dependency - clear what this system needs
+		_combatLog = ServiceLocator.Get<ICombatLog>();
+		_combatLog.OnDamageLogged += ShowDamageNumber;
+	}
+}
+```
+
+**Benefits of this approach:**
+- **Explicit contracts** - Interfaces show exact dependencies
+- **IDE navigation** - "Find References" and "Go to Implementation" work
+- **Compile-time safety** - Interface changes break at compile time, not runtime
+- **Clear boundaries** - When you need 5+ dependencies, it's obvious you need refactoring
+
+#### Dedicated Intermediaries Pattern
+
+When multiple systems need coordination, create an explicit intermediary:
+
+```csharp
+// Instead of messaging between UI, Audio, VFX, and GamePlay...
+public class CombatCoordinator : MonoBehaviour
+{
+	[Header("Systems to Coordinate")]
+	[SerializeField] private CombatUI _ui;
+	[SerializeField] private CombatAudio _audio;
+	[SerializeField] private CombatVFX _vfx;
+	[SerializeField] private CombatStats _stats;
+	
+	public void ProcessHit(HitInfo hit)
+	{
+		// Explicit orchestration - clear order of operations
+		var damage = _stats.CalculateDamage(hit);
+		
+		_ui.ShowDamage(hit.Position, damage);
+		_audio.PlayHitSound(hit.Type, hit.Position);
+		_vfx.SpawnHitEffect(hit.Position, hit.Normal);
+		_stats.ApplyDamage(hit.Target, damage);
+		
+		// Clear what happens and in what order
+	}
+}
+```
+
+#### Guidelines for Communication Patterns
+
+| Scenario | Recommended Approach | Avoid |
+|----------|---------------------|--------|
+| **2-3 systems communicating** | Direct interfaces | Message bus |
+| **UI responding to game state** | Events on interfaces | Global events |
+| **System needs 5+ dependencies** | Create intermediary | Message spam |
+| **Cross-scene data** | ScriptableObject events | Static message bus |
+| **Unknown subscribers** | Consider messaging | Force-fitting direct calls |
+| **Mod support needed** | Message bus or hooks | Direct references |
+
+#### Migration Strategy
+
+If you have an existing messaging system:
+
+1. **Identify high-traffic messages** - These often indicate missing interfaces
+2. **Group related messages** - They might form a coherent interface
+3. **Create interfaces gradually** - Don't refactor everything at once
+4. **Keep messaging for true broadcasts** - Some patterns genuinely benefit
+
+```csharp
+// Before: Multiple related messages
+PublishMessage(new PlayerDamagedMessage(damage));
+PublishMessage(new PlayerHealthUpdatedMessage(health));
+PublishMessage(new PlayerDiedMessage());
+
+// After: Coherent interface
+public interface IPlayerHealth
+{
+	event Action<DamageInfo> OnDamaged;
+	event Action<float> OnHealthChanged;
+	event Action<DeathInfo> OnDeath;
+}
+```
+
+**Key Insight:** The evolution from messaging systems to more direct communication isn't about rigid rules—it's about choosing the pattern that makes system relationships explicit and debugging straightforward. When you find yourself asking "who sends this message?" or "who receives this?", you've identified where messaging has become a liability rather than an asset.
 
 ### Async/Await Over Coroutines
 
