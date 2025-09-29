@@ -24,6 +24,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Parameters/local variables**: `camelCase`
 - **Constants**: `PascalCase`
 - **No Hungarian notation**: Avoid type prefixes (no `strName`, `fSpeed`, `goPlayer`)
+- **No abbreviations**: Spell out names (use `playerManager` not `plrMgr`)
 
 ### Formatting
 - **Indentation**: Tabs preferred (maintain codebase consistency)
@@ -79,9 +80,11 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - [Unity Project Organization](#unity-project-organization)
 - [Commenting and Documentation](#commenting-and-documentation)
 - [Version Control](#version-control)
-- [AI-Assisted Development (Vibe Coding)](#ai-assisted-development)
+- [AI-Assisted Development (Vibe Coding)](#ai-assisted-development-vibe-coding)
 - [Professional Practices](#professional-practices)
 - [Alternative Standards & Resources](#alternative-standards--resources)
+- [Summary](#summary)
+- [License](#license)
 
 ---
 
@@ -192,19 +195,134 @@ That said, I do use one form of prefixing—the underscore for private fields (`
 
 Unity's modern standards follow Microsoft's conventions and avoid these prefixes too. If you're working with legacy code or a team that uses Hungarian notation, adapt to their style. But for new projects, following the modern Microsoft/Unity approach of descriptive names without type prefixes leads to cleaner, more maintainable code.
 
+### Variable Naming and Abbreviations
+
+**Spell it out—your future self will thank you.**
+
+I've spent too much time staring at variables like `plrMgr` wondering "Is that PlayerManager or PlayerMigrator?" The few keystrokes saved by abbreviating aren't worth the cognitive load of deciphering them later. This is especially true when you're debugging at the end of a long day or when a teammate is trying to understand your code.
+
+```csharp
+// Avoid - cryptic abbreviations
+public class GameController
+{
+    private PlrMgr plrMgr;
+    private EnemyCtrl enemCtrl;
+    private int maxPlrs = 4;
+    private float respTmr;
+    private bool canRspn;
+}
+
+// Good - clear, spelled-out names
+public class GameController
+{
+    [SerializeField] private PlayerManager _playerManager;
+    [SerializeField] private EnemyController _enemyController;
+    private int _maxPlayers = 4;
+    private float _respawnTimer;
+    private bool _canRespawn;
+}
+```
+
+**Common abbreviations that still make me pause:**
+- `msg` vs `message` - Just write message
+- `ctx` vs `context` - Context is clearer
+- `cfg` vs `config` - Config or configuration
+- `btn` vs `button` - Button isn't that long
+- `usr` vs `user` - User is four letters!
+- `temp` vs `temporary` - Though I'll admit, `temp` has won through ubiquity
+
+**The exceptions where abbreviations make sense:**
+
+Sometimes abbreviations are so universal that spelling them out would be weird:
+```csharp
+// These are fine - universally understood
+UI userInterface;       // UI is clearer than UserInterface
+API apiEndpoint;       // Everyone knows API
+GUI guiManager;        // GUI is the standard term
+AI aiController;       // AI is more recognizable
+```
+
+**Mathematical contexts are different:**
+
+In mathematical or algebraic functions, single letters or standard mathematical abbreviations often improve readability by matching the domain language:
+
+```csharp
+// Good - matches mathematical convention
+public float CalculateDistance(Vector3 a, Vector3 b)
+{
+    float dx = b.x - a.x;
+    float dy = b.y - a.y;
+    float dz = b.z - a.z;
+    return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+// Good - standard physics abbreviations in physics context
+public void ApplyForce(float m, Vector3 a) // mass, acceleration
+{
+    Vector3 f = m * a; // f = ma is universally understood
+    _rigidbody.AddForce(f);
+}
+
+// Overly verbose for mathematical context
+public float CalculateDistance(Vector3 firstPoint, Vector3 secondPoint)
+{
+    float differenceInX = secondPoint.x - firstPoint.x;
+    float differenceInY = secondPoint.y - firstPoint.y;
+    // This actually makes the formula harder to read
+}
+```
+
+**Loop variables—the eternal debate:**
+
+I still use `i`, `j`, `k` for simple loop counters. It's a convention as old as programming itself, and everyone knows what they mean:
+
+```csharp
+// This is fine - universal convention
+for (int i = 0; i < items.Count; i++)
+{
+    ProcessItem(items[i]);
+}
+
+// But for nested loops, consider being clearer
+for (int row = 0; row < grid.Height; row++)
+{
+    for (int col = 0; col < grid.Width; col++)
+    {
+        grid[row, col] = initialValue;
+    }
+}
+```
+
+**The readability test:**
+
+When I'm deciding whether to abbreviate, I ask myself: "If I had to debug this code at 2 AM after being woken up by a production issue, would I immediately know what this variable represents?" If there's even a moment's hesitation, I spell it out.
+
+The only exception is when you're deliberately obfuscating code for security through obscurity (though if you're relying on that, you probably have bigger problems).
+
+**A confession:** I used to abbreviate everything, thinking it made me look like a "real" programmer. Now I realize that real programmers write code that others (including future-them) can understand without a decoder ring.
+
 ### Naming Philosophy
 
 **Favor expressiveness with preference for concise names, but accept verbose names where they add value.**
 
 ```csharp
 // Good - concise and clear
-public void Jump() { }
+public void Jump()
+{
+	// Implementation
+}
 
 // Good - verbose but adds clarity
-public async UniTask WaitForAnimationCompleteAsync(CancellationToken cancellationToken) { }
+public async UniTask WaitForAnimationCompleteAsync(CancellationToken cancellationToken)
+{
+	// Implementation
+}
 
 // Avoid - unnecessarily verbose
-public void JumpPlayerCharacterVertically() { }
+public void JumpPlayerCharacterVertically()
+{
+	// Implementation
+}
 ```
 
 ---
@@ -644,12 +762,12 @@ public void ProcessFile(string path)
 // Good - when disposal timing matters
 public void ProcessSequentialFiles()
 {
-	using (var reader = new StreamReader(path1))
+	using (var reader = new StreamReader(_path1))
 	{
 		ProcessFile(reader);
 	} // Explicitly disposed here before next file
 	
-	using (var reader = new StreamReader(path2))
+	using (var reader = new StreamReader(_path2))
 	{
 		ProcessFile(reader);
 	}
@@ -1189,6 +1307,85 @@ I remember the exact project where my faith in messaging systems started to crac
 - **Type proliferation** - We had `PlayerDamagedMessage`, `PlayerDamagedUIMessage`, `PlayerDamagedAudioMessage`... it was madness
 - **"Magic" code** - New team members would stare at the codebase asking "but how does anything actually *happen*?"
 
+#### "But Messaging Systems Decouple Code!" - The Counter-Argument
+
+This is the most common defense of messaging systems, and it sounds compelling. But I've come to believe it's based on a misunderstanding of what "decoupling" actually means and what it's worth.
+
+**The Decoupling Illusion:**
+
+Yes, messaging systems create *syntactic* decoupling—your classes don't directly reference each other. But they create *semantic* coupling that's actually worse:
+
+1. **Temporal Coupling** - Systems become dependent on the order of message processing
+2. **Implicit Contracts** - The message structure becomes an undocumented API
+3. **Hidden Dependencies** - You've just moved the coupling from compile-time (where it's obvious) to runtime (where it's hidden)
+
+```csharp
+// This looks decoupled...
+public class PlayerController : MonoBehaviour
+{
+    void TakeDamage(int amount)
+    {
+        EventBus.Publish(new PlayerDamagedMessage { Amount = amount });
+        // But who's listening? What order will they process?
+        // What if someone needs the damage source?
+        // What if we need to know if the damage was blocked?
+    }
+}
+
+// But it's actually creating worse coupling:
+// - UI assumes message comes before death message
+// - Audio system assumes player reference is valid
+// - Save system assumes damage is final (not blocked)
+// - Achievement system needs damage source (not provided)
+```
+
+**The "Decoupled" Code That Isn't:**
+
+In practice, "decoupled" messaging systems often end up with:
+- Message handlers that check global state to understand context
+- Complex ordering requirements documented only in comments
+- "Pre" and "Post" versions of every message
+- Systems that republish modified versions of received messages
+- Defensive programming because you can't trust message content
+
+**True Decoupling vs False Decoupling:**
+
+```csharp
+// False decoupling - hidden dependencies via messages
+public class HealthBar : MonoBehaviour
+{
+    void Start()
+    {
+        EventBus.Subscribe<PlayerDamagedMessage>(OnDamaged);
+        EventBus.Subscribe<PlayerHealedMessage>(OnHealed);
+        EventBus.Subscribe<PlayerRespawnedMessage>(OnRespawned);
+        // Secretly depends on PlayerController, just indirectly
+    }
+}
+
+// True decoupling - explicit interface
+public class HealthBar : MonoBehaviour
+{
+    [SerializeField] private IHealth _healthSource; // Could be player, enemy, anything
+    
+    void Start()
+    {
+        if (_healthSource != null)
+            _healthSource.OnHealthChanged += UpdateDisplay;
+    }
+}
+```
+
+The second example is MORE decoupled because HealthBar truly doesn't care what provides the health—it could be a player, enemy, or building. The first example is tightly coupled to player-specific messages.
+
+**The Debugging Argument Against "Decoupling":**
+
+When your "decoupled" system has a bug:
+- **With direct references**: Set a breakpoint, look at the call stack, fix the bug
+- **With messaging**: Set breakpoints everywhere, trace through event dispatches, correlate timestamps, pray you can reproduce it
+
+That three-hour debugging session I mentioned? With direct references, it would have been three minutes.
+
 #### The Turning Point
 
 The real turning point came when I spent three hours debugging an issue, only to realize that the solution was to move one subscription from `Start()` to `Awake()`. That's when I knew something was wrong with the approach, not the implementation.
@@ -1371,7 +1568,7 @@ The key question I now ask myself: "If I had to debug this at 2 AM, would I than
 
 ```csharp
 // Good - async/await with UniTask
-public async UniTask LoadSceneAsync(CancellationToken cancellationToken)
+public async UniTask LoadSceneAsync(string sceneName, CancellationToken cancellationToken)
 {
 	await SceneManager.LoadSceneAsync(sceneName)
 		.ToUniTask(cancellationToken: cancellationToken);
@@ -1775,10 +1972,10 @@ Source/
 - Avoid abbreviations except for common terms (UI, FX, AI)
 
 ```
-✓ Scripts/
+✓ Source/
 ✓ Prefabs/
 ✓ PlayerControllers/
-✗ scripts/
+✗ source/
 ✗ stuff/
 ✗ misc/
 ```
@@ -1824,6 +2021,284 @@ Textures:
 ✓ PlayerSkin_Normal.png
 ✓ UI_Button_Idle.png
 ```
+
+### Unity Asset and GameObject Naming (The Great Space Debate)
+
+**Use PascalCase for all Unity assets, directories, and GameObjects. Avoid spaces everywhere.**
+
+This is one of those areas where the Unity community is deeply divided. You'll see three camps:
+- **PascalCase advocates** (my preference): `PlayerController`, `HealthPickup`, `MainCamera`
+- **Space users** (Unity's default): `Player Controller`, `Health Pickup`, `Main Camera`
+- **camelCase rebels**: `playerController`, `healthPickup`, `mainCamera`
+
+I'm firmly in the PascalCase camp across the board—assets, folders, and GameObjects. Here's why:
+
+#### Why I Avoid Spaces in Asset Names
+
+I learned this lesson the hard way. We had a project where half the team used spaces in asset names because "it looks cleaner in the Unity Editor." Everything seemed fine until we needed to:
+
+1. **Load assets by path** - Suddenly we're dealing with URL encoding and escape characters
+2. **Write build scripts** - Spaces in filenames are the bane of command-line tools
+3. **Use version control** - Some Git operations struggled with spaces in paths
+4. **Reference assets in code** - String literals with spaces are more error-prone
+
+```csharp
+// With spaces - prone to errors and encoding issues
+var prefab = Resources.Load("Player Controllers/Heavy Armor Player");
+var icon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI Icons/Health Icon Large.png");
+
+// Without spaces - clean and predictable
+var prefab = Resources.Load("PlayerControllers/HeavyArmorPlayer");
+var icon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UIIcons/HealthIconLarge.png");
+```
+
+**The "But Unity Uses Spaces" Argument:**
+
+Yes, Unity's own assets often use spaces. The "Standard Assets" package is full of them. But here's the thing—Unity can get away with it because they control the entire pipeline. When you're working in a team, using third-party tools, or building automation, those spaces will eventually bite you.
+
+#### Asset Naming Patterns
+
+**General Assets:**
+```
+✓ PlayerCharacter.prefab       (PascalCase, no spaces)
+✓ HealthPickup.prefab
+✓ MainMenu.unity
+✓ ButtonClick.wav
+✓ Button_Normal.png            (underscore for state separation)
+✓ Button_Hover.png             (underscore for state separation)
+✓ Button_Pressed.png           (underscore for state separation)
+
+✗ Player Character.prefab      (spaces cause path issues)
+✗ playerCharacter.prefab       (inconsistent with folder naming)
+✗ player_character.prefab      (snake_case for the main name)
+```
+
+**Texture Naming Convention:**
+
+Include the texture type as a suffix for clarity:
+```
+✓ PlayerSkin_Diffuse.png
+✓ PlayerSkin_Normal.png
+✓ PlayerSkin_Specular.png
+✓ PlayerSkin_Height.png
+✓ PlayerSkin_Occlusion.png
+✓ PlayerSkin_Emission.png
+```
+
+**Animation Clips:**
+```
+✓ Player_Idle.anim
+✓ Player_Run.anim
+✓ Player_Jump_Start.anim
+✓ Player_Jump_Loop.anim
+✓ Player_Jump_Land.anim
+```
+
+**Audio Files:**
+```
+✓ Footstep_Concrete_01.wav
+✓ Footstep_Concrete_02.wav
+✓ UI_ButtonClick.wav
+✓ Music_MainTheme.ogg
+✓ Ambient_Forest.ogg
+```
+
+**Variant Naming:**
+
+When you have multiple versions of the same asset:
+```
+✓ Enemy_Goblin_Red.prefab
+✓ Enemy_Goblin_Blue.prefab
+✓ Enemy_Goblin_Elite.prefab
+
+✓ Sword_Iron_Tier1.prefab
+✓ Sword_Iron_Tier2.prefab
+✓ Sword_Steel_Tier1.prefab
+```
+
+#### Underscores for State and Variant Separation
+
+**Underscores are perfectly fine when separating states, variants, or descriptors from the main asset name.**
+
+While the main asset name should be PascalCase, use underscores to separate:
+
+1. **States**: `Button_Normal.png`, `Button_Hover.png`, `Button_Pressed.png`, `Button_Disabled.png`
+2. **Animation states**: `Player_Idle.anim`, `Player_Run.anim`, `Player_Jump.anim`
+3. **Texture types**: `Wall_Diffuse.png`, `Wall_Normal.png`, `Wall_Specular.png`
+4. **Numbered sequences**: `Explosion_01.wav`, `Explosion_02.wav`, `Footstep_01.wav`
+5. **Variants**: `Enemy_Goblin_Red.prefab`, `Enemy_Goblin_Blue.prefab`
+
+The key distinction: the underscore separates the *what* from the *which*:
+- `Button` (what) + `_Pressed` (which state)
+- `Player` (what) + `_Jump` (which animation)
+- `Wall` (what) + `_Normal` (which texture type)
+
+This is different from snake_case naming like `player_character` or `health_pickup`, where underscores are used within the primary name itself. The underscore should be a delimiter between the asset and its state/variant, not a word separator within the name.
+
+#### Platform and Tool Considerations
+
+Different platforms and tools have different tolerances for spaces:
+
+| Context | Spaces Work? | Notes |
+|---------|-------------|--------|
+| Unity Editor | ✅ Yes | Displays fine |
+| Resources.Load() | ⚠️ Mostly | Requires exact string match |
+| Addressables | ⚠️ Mostly | Can cause issues with addresses |
+| Git/Command Line | ❌ Often problematic | Requires quotes/escaping |
+| Build Scripts | ❌ Problematic | Spaces break arguments |
+| Web Deployment | ❌ Problematic | URL encoding issues |
+| Asset Bundles | ⚠️ Mostly | Can complicate manifest parsing |
+
+#### My Evolution on This Topic
+
+Early in my Unity journey, I used spaces everywhere because it "looked professional" in the Inspector. Then came the project where we needed to automate our build pipeline. I spent two days debugging why certain assets weren't being included in builds—turned out the build script was choking on spaces in filenames.
+
+After that experience, I switched to PascalCase everywhere and never looked back. Yes, `PlayerHealthManager` is slightly less readable in the Project window than `Player Health Manager`, but the technical benefits far outweigh the aesthetic cost.
+
+#### Team Considerations
+
+If your team is already using spaces:
+1. **Don't fight it** - Consistency matters more than being "right"
+2. **Document the pain points** - Keep track of where spaces cause issues
+3. **Advocate gradually** - When spaces cause a problem, that's your teaching moment
+4. **Automate around it** - Write scripts that handle both conventions
+
+If you're starting fresh:
+1. **Establish the convention early** - Before you have hundreds of assets
+2. **Document it clearly** - Add it to your project's README
+3. **Enforce it in reviews** - Catch space usage early
+4. **Provide clear examples** - Show the naming pattern for each asset type
+
+#### GameObject Naming in the Hierarchy
+
+**Apply PascalCase to GameObjects too—in for a penny, in for a pound.**
+
+I'll admit, I'm slightly more flexible about spaces in GameObject names than I am with assets. GameObjects don't get referenced in file paths, and the Hierarchy is often the domain of level designers, artists, and other non-programmers. But here's the thing—once you've committed to PascalCase everywhere else, why introduce inconsistency?
+
+```
+Hierarchy (Good - PascalCase):
+MainCamera
+PlayerCharacter
+├── Model
+├── Collider
+├── HealthBar
+│   ├── Background
+│   ├── FillBar
+│   └── BorderFrame
+EnemySpawner
+├── SpawnPoint01
+├── SpawnPoint02
+└── SpawnPoint03
+
+Hierarchy (Avoid - Mixed conventions):
+Main Camera          // Space
+playerCharacter      // camelCase
+├── Model           // PascalCase
+├── collider        // lowercase
+├── Health Bar      // Space
+enemy_spawner       // snake_case
+```
+
+**The Case for Consistency:**
+
+When everything in your project follows the same naming convention:
+- **Mental load decreases** - No need to remember different rules for different contexts
+- **Find operations work better** - Searching for "Player" finds PlayerController.cs, PlayerCharacter.prefab, and the PlayerCharacter GameObject
+- **Scripts referencing GameObjects** - `GameObject.Find("PlayerCharacter")` matches your naming elsewhere
+- **Prefab-to-instance clarity** - A PlayerCharacter prefab instantiates as PlayerCharacter, not "Player Character"
+
+**The Designer Argument:**
+
+"But designers aren't programmers! They want readable names!"
+
+I get it. And if your team's designers are adamant about spaces, you can compromise on GameObjects. But in my experience, designers quickly adapt to PascalCase, especially when they see the benefits:
+
+1. **Consistency with prefab names** - The prefab and its instances match
+2. **Clear parent-child relationships** - `PlayerCharacter/HealthBar/FillBar` is unambiguous
+3. **No confusion in scripts** - When they do venture into code, the names match
+
+#### Directory Structure Naming
+
+**Directories follow the same PascalCase rule—no exceptions.**
+
+Your folder structure sets the tone for the entire project. When developers see consistently named folders, they're more likely to follow suit with their assets:
+
+```
+Assets/
+├── ProjectName/
+│   ├── Common/
+│   │   ├── Source/
+│   │   ├── Prefabs/
+│   │   └── Materials/
+│   ├── Player/
+│   │   ├── Source/
+│   │   ├── Prefabs/
+│   │   └── Animations/
+│   └── Enemies/
+│       ├── Goblin/
+│       ├── Orc/
+│       └── Dragon/
+
+NOT:
+├── Project Name/        // Spaces
+├── common/             // lowercase
+├── player_stuff/       // snake_case
+└── Misc Assets/        // Inconsistent
+```
+
+The benefits compound with directories:
+- **Import paths are clean**: `using ProjectName.Player.Source;`
+- **Command-line friendly**: `cd Assets/ProjectName/Player`
+- **Asset references work**: `Resources.Load("Enemies/Goblin/GoblinWarrior")`
+- **Build scripts don't break**: No escaping needed
+
+#### The Aesthetic Argument (And Why I Love Consistency)
+
+There's something deeply satisfying about opening a Unity project and seeing perfectly consistent naming throughout. When I see a hierarchy like this:
+
+```
+Canvas
+├── MainMenu
+│   ├── TitleText
+│   ├── PlayButton
+│   ├── OptionsButton
+│   └── QuitButton
+├── HUD
+│   ├── HealthDisplay
+│   ├── AmmoCounter
+│   └── ScoreText
+└── PauseMenu
+    ├── ResumeButton
+    └── MainMenuButton
+```
+
+...versus this:
+
+```
+Canvas
+├── Main Menu
+│   ├── title_text
+│   ├── Play Button
+│   ├── optionsBtn
+│   └── Quit_Button
+├── HUD
+│   ├── Health Display
+│   ├── ammo-counter
+│   └── Score Text
+└── pause_menu
+    ├── ResumeButton
+    └── main menu button
+```
+
+The first one just feels *right*. It's not crucially important—your game won't fail because of inconsistent naming—but that sense of calm and cleanliness you get from well-organized, consistently named hierarchies? That translates to clearer thinking, fewer mistakes, and a more maintainable project.
+
+It's like making your bed in the morning. Will the world end if you don't? No. But starting your day with that small act of order sets a tone. Similarly, maintaining consistent naming throughout your Unity project sets a tone of professionalism and care that permeates the entire development process.
+
+#### The Bottom Line
+
+**My recommendation:** Use PascalCase without spaces for everything—assets, directories, and GameObjects. It's technically safer, more compatible with tools and scripts, and maintains consistency throughout your project. The slight reduction in Inspector readability is a small price to pay for the technical benefits and that satisfying sense of order.
+
+But remember—if your team has an established convention, follow it. A consistent "wrong" approach is better than an inconsistent "right" one. That said, if you're in a position to influence the convention, advocate for PascalCase everywhere. Your future self (and your teammates) will thank you when everything just *works* without escape characters, quotes, or encoding issues.
 
 ### Documentation in Feature Folders
 
