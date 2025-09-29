@@ -236,14 +236,16 @@ Complex<Nested<Generic>> result = CalculateComplexResult();
 
 **Note:** While IDEs display inferred types on hover, consider explicit types when the inferred type is complex or unclear, particularly for code reviews conducted outside the IDE (terminal, GitHub, etc.).
 
-### Brace Style (Non-Cuddled/Allman Style)
+### Brace Style (The Great Cuddley vs Non-Cuddley Debate)
 
-**Use non-cuddled braces (Allman style) - opening braces on their own line.**
+**Use non-cuddley braces (Allman style) - opening braces on their own line.**
 
-The non-cuddled style places opening braces on a new line, aligning them vertically with their closing braces. This creates clearer visual boundaries for code blocks and improves readability by making the start and end of blocks immediately apparent.
+This one brings back memories! My former co-founder Dean and I had countless debates about this. He was firmly in the cuddley camp (K&R style), while I've always been team non-cuddley. We'd literally spend lunch breaks arguing about whether braces should "cuddle" up to their statements or stand proudly on their own lines.
+
+The non-cuddley style places opening braces on a new line, aligning them vertically with their closing braces. For me, this creates clearer visual boundaries—I can scan down the left margin and immediately see where blocks begin and end.
 
 ```csharp
-// Good - non-cuddled/Allman style
+// My preference - non-cuddley (Allman style)
 if (health <= 0)
 {
 	Die();
@@ -260,7 +262,7 @@ public void ProcessPlayer(Player player)
 	UpdatePlayerState(player);
 }
 
-// Avoid - cuddled braces (K&R style)
+// Dean's preference - cuddley braces (K&R style)
 if (health <= 0) {
 	Die();
 	return;
@@ -275,7 +277,29 @@ public void ProcessPlayer(Player player) {
 }
 ```
 
-**Rationale:** Non-cuddled braces create a clear visual structure where the vertical alignment of opening and closing braces makes it easier to identify code block boundaries, especially in complex nested structures.
+**Why I'm Team Non-Cuddley (Despite Dean's Historical Point):**
+
+Dean's argument was that dropping brackets onto a new line could cause bugs—and he was actually referring to a real issue. In JavaScript, there's a genuine technical problem with non-cuddley braces due to Automatic Semicolon Insertion (ASI):
+
+```javascript
+// JavaScript - This breaks with non-cuddley!
+return
+{
+    success: true
+};
+// JavaScript inserts a semicolon after 'return', returning undefined!
+
+// Must use cuddley style in JavaScript for this case
+return {
+    success: true
+};
+```
+
+This wasn't some theoretical edge case—it was a real bug that bit many developers. Languages like Go actually *enforce* cuddley braces partly because of lessons learned from JavaScript's ASI issues.
+
+But here's the thing—we're writing C#, not JavaScript. C# doesn't have ASI, so this particular issue doesn't exist. After years of this debate (and trying both styles extensively), I've stuck with non-cuddley for a simple reason: when I'm exhausted at the end of a long coding session, those aligned braces are like visual anchors. I can immediately see the structure of the code without having to parse where blocks begin and end.
+
+The truth is, both work in C#. This is one of those debates where context matters—use cuddley in JavaScript to avoid bugs, but in C#, pick based on readability preference and stick with it consistently.
 
 ### Member Ordering by Access Level
 
@@ -1080,11 +1104,11 @@ public class HealthDisplay : MonoBehaviour
 
 **Consider carefully before implementing messaging systems - often direct communication or dedicated intermediaries are clearer.**
 
-While messaging systems (event buses, message brokers) promise decoupling, they often introduce hidden complexity. The evolution away from messaging systems toward more explicit communication patterns reflects a preference for clarity over cleverness.
+This is an area where my thinking has evolved significantly over the years. I was once a strong advocate for messaging systems—they felt like the "proper" architectural solution. But experience has taught me that what seems clever in theory often becomes a burden in practice. This evolution away from messaging systems toward more explicit communication patterns reflects a hard-won preference for clarity over cleverness.
 
-#### The Messaging System Trap
+#### My Journey with Messaging Systems
 
-Early in many developers' journeys, messaging systems seem like the perfect solution:
+I'll be honest—early in my career, I thought messaging systems were the answer to everything. The promise of perfectly decoupled systems was intoxicating:
 
 ```csharp
 // The allure of messaging systems - everything is decoupled!
@@ -1124,17 +1148,20 @@ public class ScoreManager : MonoBehaviour
 }
 ```
 
-**Problems that emerge:**
-- **Hidden dependencies** - Can't see connections between systems in IDE
-- **Debugging nightmare** - Stack traces don't show the full communication chain
-- **Race conditions** - Message ordering and timing becomes critical
-- **Memory leaks** - Forgotten unsubscribes cause retained references
-- **Type proliferation** - Explosion of message types for every interaction
-- **"Magic" code** - New developers can't understand system flow
+**The problems that slowly revealed themselves:**
 
-#### Evolution Toward Explicit Communication
+I remember the exact project where my faith in messaging systems started to crack. We had built this beautiful, completely decoupled system where everything communicated via messages. It felt so clean! Then came the bugs...
 
-As systems mature, explicit patterns often prove superior:
+- **Hidden dependencies** - I spent an entire day trying to figure out why the score wasn't updating, only to discover a missing subscription three systems away
+- **Debugging nightmare** - Stack traces became useless. "Who sent this message?" became my most-asked question
+- **Race conditions** - The order messages were processed started to matter, but we had no control over it
+- **Memory leaks** - We kept finding UI elements that were still subscribed to events long after being destroyed
+- **Type proliferation** - We had `PlayerDamagedMessage`, `PlayerDamagedUIMessage`, `PlayerDamagedAudioMessage`... it was madness
+- **"Magic" code** - New team members would stare at the codebase asking "but how does anything actually *happen*?"
+
+#### The Turning Point
+
+The real turning point came when I spent three hours debugging an issue, only to realize that the solution was to move one subscription from `Start()` to `Awake()`. That's when I knew something was wrong with the approach, not the implementation.
 
 ```csharp
 // Better - Direct dependency with interface
@@ -1156,9 +1183,9 @@ public class ScoreManager : MonoBehaviour
 }
 ```
 
-#### When Messaging Systems Make Sense
+#### When Messaging Systems Still Make Sense
 
-Messaging systems still have their place for specific scenarios:
+Now, I'm not saying messaging systems are always bad—that would be replacing one dogma with another. Through trial and error, I've found they still have their place:
 
 **1. True Broadcasting (1-to-Many Unknown)**
 ```csharp
@@ -1194,9 +1221,9 @@ public class ModEventSystem
 }
 ```
 
-#### The Service Locator + Interfaces Sweet Spot
+#### Finding My Sweet Spot: Service Locator + Interfaces
 
-The combination of Service Locator pattern with explicit interfaces often provides the right balance:
+After years of flip-flopping between "decouple everything" and "just reference things directly," I've found what works for me. The combination of Service Locator pattern with explicit interfaces has become my go-to approach. It's not perfect, but it's pragmatic:
 
 ```csharp
 // Clear contracts without tight coupling
@@ -1228,15 +1255,17 @@ public class DamageNumberUI : MonoBehaviour
 }
 ```
 
-**Benefits of this approach:**
-- **Explicit contracts** - Interfaces show exact dependencies
-- **IDE navigation** - "Find References" and "Go to Implementation" work
-- **Compile-time safety** - Interface changes break at compile time, not runtime
-- **Clear boundaries** - When you need 5+ dependencies, it's obvious you need refactoring
+**Why this approach has stuck with me:**
+- **Explicit contracts** - I can see exactly what each system depends on
+- **IDE navigation works** - Ctrl+Click actually takes me somewhere useful
+- **Compile-time safety** - I find out about breaking changes immediately, not at runtime
+- **Natural refactoring signals** - When a class needs 5+ interfaces, it's screaming "I'm doing too much!"
 
-#### Dedicated Intermediaries Pattern
+The last point has been particularly valuable. With messaging systems, you could subscribe to 20 different messages and it would look fine. With explicit interface dependencies, the constructor or Start method becomes a monster, and that discomfort drives better design.
 
-When multiple systems need coordination, create an explicit intermediary:
+#### The Dedicated Intermediary Pattern (My Favorite Discovery)
+
+This pattern emerged naturally once I stopped fighting the "too many dependencies" signal. Instead of having systems talk to each other through messages or complex dependency chains, I now create explicit coordinators:
 
 ```csharp
 // Instead of messaging between UI, Audio, VFX, and GamePlay...
@@ -1263,7 +1292,9 @@ public class CombatCoordinator : MonoBehaviour
 }
 ```
 
-#### Guidelines for Communication Patterns
+This feels so much better than the old way. I know exactly what happens when a hit occurs, in what order, and I can debug it with a simple breakpoint.
+
+#### My Current Guidelines (Subject to Change!)
 
 | Scenario | Recommended Approach | Avoid |
 |----------|---------------------|--------|
@@ -1274,14 +1305,14 @@ public class CombatCoordinator : MonoBehaviour
 | **Unknown subscribers** | Consider messaging | Force-fitting direct calls |
 | **Mod support needed** | Message bus or hooks | Direct references |
 
-#### Migration Strategy
+#### If You're Stuck with a Messaging System
 
-If you have an existing messaging system:
+I've been there—inheriting or having built a system where everything uses messages. Here's how I've approached gradually moving away:
 
-1. **Identify high-traffic messages** - These often indicate missing interfaces
-2. **Group related messages** - They might form a coherent interface
-3. **Create interfaces gradually** - Don't refactor everything at once
-4. **Keep messaging for true broadcasts** - Some patterns genuinely benefit
+1. **Start with the pain points** - Those high-traffic messages that everyone subscribes to
+2. **Group related messages** - They often naturally form interfaces
+3. **Refactor gradually** - I've learned the hard way not to rewrite everything at once
+4. **Keep some messages** - Don't be dogmatic; some genuinely benefit from broadcasting
 
 ```csharp
 // Before: Multiple related messages
@@ -1298,7 +1329,11 @@ public interface IPlayerHealth
 }
 ```
 
-**Key Insight:** The evolution from messaging systems to more direct communication isn't about rigid rules—it's about choosing the pattern that makes system relationships explicit and debugging straightforward. When you find yourself asking "who sends this message?" or "who receives this?", you've identified where messaging has become a liability rather than an asset.
+**A Final Thought:** 
+
+My evolution from messaging systems to more direct communication wasn't overnight, and I still question it sometimes. There are days when I see a particularly elegant message-based solution and think "maybe I was too hasty..." But then I remember those three-hour debugging sessions, and I'm reminded why I changed my approach.
+
+The key question I now ask myself: "If I had to debug this at 2 AM, would I thank past-me or curse past-me?" Usually, that leads me away from clever messaging and toward boringly obvious direct connections. And boring, I've learned, is often a virtue in code.
 
 ### Async/Await Over Coroutines
 
