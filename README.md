@@ -23,6 +23,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Private fields**: `_camelCase` (underscore prefix)
 - **Parameters/local variables**: `camelCase`
 - **Constants**: `PascalCase`
+- **No Hungarian notation**: Avoid type prefixes (no `strName`, `fSpeed`, `goPlayer`)
 
 ### Formatting
 - **Indentation**: Tabs preferred (maintain codebase consistency)
@@ -80,6 +81,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - [Version Control](#version-control)
 - [AI-Assisted Development (Vibe Coding)](#ai-assisted-development)
 - [Professional Practices](#professional-practices)
+- [Alternative Standards & Resources](#alternative-standards--resources)
 
 ---
 
@@ -147,6 +149,48 @@ public void ApplyDamage(int damageAmount, DamageType damageType)
 private const int MaxPlayers = 4;
 private static readonly Vector3 SpawnPosition = new Vector3(0, 1, 0);
 ```
+
+### Hungarian Notation and Type Prefixes (Why I Avoid Them)
+
+**Avoid Hungarian notation and type prefixes in variable names.**
+
+While Unity's modern coding standards (like Microsoft's) don't use Hungarian notation, you might encounter it in older tutorials or legacy codebases. You might also see `m_` prefixes in some older Unity example code—a remnant from Unity's C++ engine heritage where this was standard practice.
+
+```csharp
+// Sometimes seen in older tutorials or legacy code
+public class Example : MonoBehaviour
+{
+    public GameObject goPlayer;      // Hungarian notation
+    public Transform tTarget;        // Type prefix
+    private float m_Speed = 5.0f;    // C++ style member prefix
+    private int iHealth = 100;       // Hungarian notation
+    private string strPlayerName;    // Type prefix
+}
+
+// My preference - descriptive names without type prefixes
+public class Example : MonoBehaviour
+{
+    public GameObject player;
+    public Transform target;
+    private float _speed = 5.0f;
+    private int _health = 100;
+    private string _playerName;
+}
+```
+
+Here's why I avoid Hungarian notation and type prefixes:
+
+**The redundancy bothers me.** We're already declaring the type (or inferring it with `var`), so prefixing with type information is saying the same thing twice. It's like naming your dog "DogBuddy"—technically clear, but unnecessarily redundant.
+
+**Modern IDEs eliminate the need.** Hover over any variable and you see its type instantly. The argument for Hungarian notation made more sense when we were coding in Notepad, but those days are (thankfully) behind us.
+
+**It leads to maintenance lies.** I've seen too much code where someone changed `float fSpeed` to `double fSpeed` and forgot to update the prefix. Now the notation is actively misleading. A variable named `speed` can change type without becoming a lie.
+
+**It obscures meaning.** Compare `rbPlayer` vs `playerRigidbody`—which one immediately tells you it's the player's rigidbody? The descriptive name wins every time.
+
+That said, I do use one form of prefixing—the underscore for private fields (`_health`). But that's about scope, not type, and it serves a different purpose: immediately distinguishing fields from local variables and parameters.
+
+Unity's modern standards follow Microsoft's conventions and avoid these prefixes too. If you're working with legacy code or a team that uses Hungarian notation, adapt to their style. But for new projects, following the modern Microsoft/Unity approach of descriptive names without type prefixes leads to cleaner, more maintainable code.
 
 ### Naming Philosophy
 
@@ -2513,6 +2557,92 @@ I used to pride myself on never asking questions, figuring everything out on my 
 These days, I follow my own 15-minute rule religiously. Sometimes I solve it in minute 14 and feel brilliant. Sometimes I ask the question and discover there was no way I could have known the answer. Both outcomes are victories.
 
 The key insight: **Asking good questions is a skill that shows respect for everyone's time, including your own.**
+
+---
+
+## Alternative Standards & Resources
+
+**Explore other perspectives to form your own opinions.**
+
+These coding standards represent my personal journey and opinions, but there's immense value in seeing how others approach these same challenges. Here are resources that have influenced my thinking or offer different perspectives worth considering:
+
+### Official Standards
+
+**[Microsoft's C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)**
+- The foundation many of us build from
+- Note where I diverge (tabs vs spaces, explicit access modifiers)
+- Essential reading for any C# developer
+
+**[Unity's Official C# Style Guide](https://unity.com/resources/c-sharp-style-guide-unity-6)**
+- Unity's own recommendations for Unity 6
+- Helpful for understanding Unity's internal conventions
+- Good baseline for teams without established standards
+
+### Community Unity Standards
+
+**[nevumx/unity-standards](https://github.com/nevumx/unity-standards)**
+- A comprehensive "living document" for Unity C# coding
+- Goes beyond syntax to cover development phases (Pre-Alpha to Gold)
+- Excellent for larger projects and teams
+
+**[SamuelAsherRivello/unity-project-template](https://github.com/SamuelAsherRivello/unity-project-template)**
+- Complete project template with standards baked in
+- Traditional GameObject approach (not DOTS)
+- Great starting point for new projects
+
+**[thomasjacobsen-unity/Unity-Code-Style-Guide](https://github.com/thomasjacobsen-unity/Unity-Code-Style-Guide)**
+- Created with input from Unity experts
+- Focuses on commercial-scale production
+- Strong emphasis on scalability
+
+**[justinwasilenko/Unity-Style-Guide](https://github.com/justinwasilenko/Unity-Style-Guide)**
+- Comprehensive project structure guidelines
+- Asset naming conventions
+- Folder organization strategies
+
+### Different Philosophies
+
+**[MuhammadFaizanKhan/UnityCSharpCodingStandards](https://github.com/MuhammadFaizanKhan/UnityCSharpCodingStandards)**
+- Heavy use of #regions (opposite of my preference)
+- Abbreviations for UI controls
+- Interesting to see contrasting approaches
+
+**[dennisdoomen/CSharpGuidelines](https://github.com/dennisdoomen/csharpguidelines)**
+- Comprehensive C# 9.0+ guidelines
+- Not Unity-specific but excellent general practices
+- Strong focus on design principles
+
+### Educational Resources
+
+**Content Creators Who Shape Unity Standards:**
+
+- **Jason Weimann** - Focuses on design patterns and architecture
+- **Code Monkey** - Emphasizes clean, professional code
+- **Brackeys** (archives) - Foundational tutorials many learned from
+- **Unity's Best Practices Hub** - Official guides from Unity experts
+
+### Why Look at Others?
+
+I include these not because they're "better" or "worse," but because:
+
+1. **Context matters** - What works for a solo developer differs from a 50-person team
+2. **Evolution** - Seeing different approaches helped shape my current views
+3. **Validation** - When multiple sources agree, it's probably good practice
+4. **Challenge** - When they disagree, it forces you to think about *why*
+
+Some of these standards directly contradict mine (regions, abbreviated names, etc.), and that's valuable. The disagreements are where the interesting discussions happen.
+
+### Forming Your Own Standards
+
+After reviewing these resources, you might:
+- Adopt mine wholesale (though I'd encourage adaptation)
+- Cherry-pick ideas from multiple sources
+- Create something entirely your own
+- Use official standards but with team-specific modifications
+
+The important thing isn't which standards you choose, but that you choose consciously and document your decisions. Your future self (and your team) will thank you.
+
+**Remember:** The best coding standard is the one your team will actually follow.
 
 ---
 
