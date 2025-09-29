@@ -34,12 +34,15 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Using statements**: Prefer `using var` declarations over block-scoped
 
 ### Code Organization
+- **Member ordering**: Public → Serialized protected → Serialized private → Protected → Private
 - **Never nester**: Favor early returns, guard clauses, and abstracted methods
 - **SOLID principles**: Emphasize Single Responsibility Principle
 - **Readability over performance**: Favor clarity where complexity has interpretation cost
 - **Protected virtual**: Use for extension points in immutable codebases and Unity lifecycle methods
 
 ### Unity Guidelines
+- **Component assignment**: Prefer Inspector assignment over GetComponent
+- **Component communication**: Choose pattern based on context (optional vs critical)
 - **Async/await**: Prefer over coroutines
 - **UniTask**: Use for async operations with Unity lifecycle integration
 - **DOTween**: Use with UniTask extension for awaitable tweens
@@ -216,7 +219,7 @@ private void ResetHealth()
 
 ```csharp
 // Good - type is obvious
-var player = GetComponent<PlayerController>();
+var player = new PlayerController();
 var position = new Vector3(0, 1, 0);
 var enemies = new List<Enemy>();
 
@@ -272,6 +275,216 @@ public void ProcessPlayer(Player player) {
 ```
 
 **Rationale:** Non-cuddled braces create a clear visual structure where the vertical alignment of opening and closing braces makes it easier to identify code block boundaries, especially in complex nested structures.
+
+### Member Ordering by Access Level
+
+**Order class members by access level to emphasize the public API first.**
+
+Organize properties and methods in the following order:
+1. **Public** members (the class's public API, including serialized public properties)
+2. **Serialized protected** fields (Inspector-exposed and inheritable)
+3. **Serialized private** fields (Inspector-exposed but internal)
+4. **Protected** members (extension points for derived classes)
+5. **Private** members (internal implementation details)
+
+Within each access level, group similar members together (properties, then methods). Serialized fields maintain the access hierarchy even though they're exposed in the Inspector.
+
+```csharp
+public class PlayerController : MonoBehaviour
+{
+	// 1. Public properties and fields (API surface)
+	public int MaxHealth { get; private set; } = 100;
+	public float MoveSpeed { get; set; } = 5f;
+	[field: SerializeField] public int StartingHealth { get; private set; }
+	
+	// 2. Serialized protected fields (Inspector-exposed, inheritable)
+	[SerializeField] protected float _jumpForce = 10f;
+	[SerializeField] protected LayerMask _groundLayers;
+	
+	// 3. Serialized private fields (Inspector-exposed, internal)
+	[SerializeField] private GameObject _playerModel;
+	[SerializeField] private AudioClip _jumpSound;
+	[SerializeField] private Rigidbody _rigidbody;
+	
+	// 4. Protected members (for inheritance)
+	protected virtual float DamageMultiplier => 1.0f;
+	
+	// 5. Private fields (internal state)
+	private int _currentHealth;
+	private bool _isGrounded;
+	
+	// 6. Public methods (API)
+	public void TakeDamage(int damage)
+	{
+		_currentHealth = Mathf.Max(0, _currentHealth - damage);
+		OnDamageTaken(damage);
+	}
+	
+	public void Jump()
+	{
+		if (!_isGrounded) return;
+		_rigidbody.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse);
+	}
+	
+	// 7. Protected methods (extensibility points)
+	protected virtual void Start()
+	{
+		_currentHealth = StartingHealth;
+	}
+	
+	protected virtual void OnDamageTaken(int damage)
+	{
+		// Override point for derived classes
+	}
+	
+	// 8. Private methods (implementation details)
+	private void UpdateGroundedState()
+	{
+		_isGrounded = Physics.Raycast(transform.position, Vector3.down, 1.1f);
+	}
+	
+	private void PlayJumpSound()
+	{
+		if (_jumpSound != null)
+		{
+			AudioSource.PlayClipAtPoint(_jumpSound, transform.position);
+		}
+	}
+}
+```
+
+**Rationale:** 
+- **Public-first approach** makes the class's API immediately visible to consumers
+- **Serialized fields follow public** because they're part of the class's Unity Inspector interface (quasi-public)
+- **Protected members before private** maintains the hierarchy of accessibility
+- **Implementation details last** keeps focus on the interface rather than internals
+- This ordering creates a natural flow from "what the class does" (public API) to "how it does it" (private implementation)
+
+### Regions (Avoid)
+
+**Avoid using `#region` directives - they often indicate violations of Single Responsibility Principle.**
+
+Regions are frequently used to hide complexity and group related functionality within a class. However, if a class needs regions to organize its code, it's likely doing too much. Each region typically represents a different responsibility that should be extracted into its own class.
+
+```csharp
+// Avoid - regions hiding multiple responsibilities
+public class PlayerController : MonoBehaviour
+{
+	#region Health Management
+	private int _health;
+	public void TakeDamage(int amount) { } // Simplified for example
+	public void Heal(int amount) { } // Simplified for example
+	private void Die() { } // Simplified for example
+	#endregion
+	
+	#region Movement
+	private Vector3 _velocity;
+	public void Move(Vector3 direction) { } // Simplified for example
+	public void Jump() { } // Simplified for example
+	private void ApplyGravity() { } // Simplified for example
+	#endregion
+	
+	#region Inventory
+	private List<Item> _items;
+	public void AddItem(Item item) { } // Simplified for example
+	public void RemoveItem(Item item) { } // Simplified for example
+	private void SortInventory() { } // Simplified for example
+	#endregion
+}
+
+// Good - separate classes for separate responsibilities
+public class PlayerController : MonoBehaviour
+{
+	[SerializeField] private HealthSystem _healthSystem;
+	[SerializeField] private MovementController _movement;
+	[SerializeField] private InventorySystem _inventory;
+}
+
+public class HealthSystem : MonoBehaviour
+{
+	private int _health;
+	
+	public void TakeDamage(int amount)
+	{
+		// Implementation
+	}
+	
+	public void Heal(int amount)
+	{
+		// Implementation
+	}
+	
+	private void Die()
+	{
+		// Implementation
+	}
+}
+
+public class MovementController : MonoBehaviour
+{
+	private Vector3 _velocity;
+	
+	public void Move(Vector3 direction)
+	{
+		// Implementation
+	}
+	
+	public void Jump()
+	{
+		// Implementation
+	}
+	
+	private void ApplyGravity()
+	{
+		// Implementation
+	}
+}
+```
+
+**Code Smell Indicators:**
+
+When you find yourself wanting to use regions, consider these alternatives:
+
+1. **Multiple functional regions** → Extract each region into its own class
+2. **"Private Methods" region** → Consider if methods belong in helper classes
+3. **"Properties" region** → Use proper member ordering instead
+4. **"Unity Callbacks" region** → These should be naturally grouped by member ordering
+5. **Interface implementation regions** → Each interface might warrant its own class
+
+**Rare Acceptable Uses:**
+
+In very limited cases, regions might be acceptable:
+
+```csharp
+// Acceptable - grouping generated or required boilerplate
+public partial class GeneratedClass
+{
+	#region Auto-Generated Code - Do Not Modify
+	// Generated code from tools
+	#endregion
+}
+
+// Acceptable - platform-specific implementations
+public class CrossPlatformService
+{
+	#if UNITY_EDITOR
+	// Editor-only implementation
+	#elif UNITY_IOS
+	// iOS-specific implementation  
+	#elif UNITY_ANDROID
+	// Android-specific implementation
+	#endif
+}
+```
+
+**Rationale:**
+- **Regions hide complexity** rather than addressing it
+- **Violates SRP** - Multiple regions usually mean multiple responsibilities
+- **Impedes navigation** - Code folding hides important details
+- **False organization** - Provides illusion of structure without actual architectural improvement
+- **Better alternatives exist** - Proper class design, member ordering, and extraction eliminate the need
+
+If your class is large enough to "need" regions, it's large enough to be refactored into smaller, focused classes.
 
 ### Control Flow Statements
 
@@ -426,14 +639,28 @@ Follow SOLID principles with emphasis on:
 // Good - single responsibilities
 public class HealthSystem
 {
-	public void TakeDamage(int amount) { }
-	public void Heal(int amount) { }
+	public void TakeDamage(int amount)
+	{
+		// Implementation
+	}
+	
+	public void Heal(int amount)
+	{
+		// Implementation
+	}
 }
 
 public class PlayerMovement
 {
-	public void Move(Vector3 direction) { }
-	public void Jump() { }
+	public void Move(Vector3 direction)
+	{
+		// Implementation
+	}
+	
+	public void Jump()
+	{
+		// Implementation
+	}
 }
 
 // Avoid - multiple responsibilities
@@ -454,6 +681,10 @@ public class Player
 // Good - readable
 public bool IsPlayerEligibleForReward()
 {
+	var questId = _currentQuestId;
+	var requiredLevel = 10;
+	var rewardId = _currentRewardId;
+	
 	bool hasCompletedQuest = _questSystem.IsQuestComplete(questId);
 	bool hasMinimumLevel = _player.Level >= requiredLevel;
 	bool hasNotClaimedBefore = !_rewardSystem.HasClaimed(rewardId);
@@ -470,6 +701,379 @@ public bool IsPlayerEligibleForReward() =>
 ---
 
 ## Unity-Specific Guidelines
+
+### Component Dependencies
+
+**Prefer Inspector assignment over GetComponent for dependencies.**
+
+Assign component dependencies through the Unity Inspector rather than finding them at runtime with GetComponent. This approach exposes missing dependencies immediately in the editor rather than causing runtime errors.
+
+```csharp
+// Good - Inspector assignment with clear dependencies
+public class PlayerController : MonoBehaviour
+{
+	[Header("Required Components")]
+	[SerializeField] private Rigidbody _rigidbody;
+	[SerializeField] private Animator _animator;
+	[SerializeField] private AudioSource _audioSource;
+	
+	[Header("Dependencies")]
+	[SerializeField] private HealthSystem _healthSystem;
+	[SerializeField] private InventoryManager _inventory;
+	
+	private void Start()
+	{
+		// Components are already assigned and validated
+		_rigidbody.velocity = Vector3.zero;
+	}
+}
+
+// Avoid - runtime component lookup
+public class PlayerController : MonoBehaviour
+{
+	private Rigidbody _rigidbody;
+	private Animator _animator;
+	private HealthSystem _healthSystem;
+	
+	private void Awake()
+	{
+		// Runtime lookups add overhead and can fail silently
+		_rigidbody = GetComponent<Rigidbody>();
+		_animator = GetComponent<Animator>();
+		_healthSystem = GetComponentInChildren<HealthSystem>();
+	}
+}
+```
+
+**Benefits:**
+- **Early error detection** - Missing dependencies are visible in the Inspector
+- **Better performance** - No runtime GetComponent overhead
+- **Clear dependencies** - Inspector shows all required components at a glance
+- **Easier testing** - Dependencies can be mocked/swapped in the Inspector
+- **Prefab validation** - Prefabs show missing references immediately
+
+**Exception - Dynamic or Optional Components:**
+
+Use GetComponent when components are truly optional or added dynamically:
+
+```csharp
+public class InteractionHandler : MonoBehaviour
+{
+	private void OnTriggerEnter(Collider other)
+	{
+		// Dynamic lookup for optional component on other object
+		var interactable = other.GetComponent<IInteractable>();
+		interactable?.Interact();
+	}
+}
+```
+
+**Validation with Required Attribute:**
+
+Use the `[RequireComponent]` attribute to ensure components exist:
+
+```csharp
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CapsuleCollider))]
+public class CharacterMotor : MonoBehaviour
+{
+	// These components are guaranteed to exist
+	[SerializeField] private Rigidbody _rigidbody;
+	[SerializeField] private CapsuleCollider _collider;
+}
+```
+
+**Runtime Validation:**
+
+Validate references are set using OnValidate (editor) or Awake (runtime):
+
+```csharp
+public class PlayerController : MonoBehaviour
+{
+	[SerializeField] private Rigidbody _rigidbody;
+	[SerializeField] private HealthSystem _healthSystem;
+	[SerializeField] private WeaponSystem _weaponSystem;
+	
+	// Editor-time validation
+	private void OnValidate()
+	{
+		if (_rigidbody == null)
+		{
+			Debug.LogWarning($"Rigidbody is not assigned on {gameObject.name}", this);
+		}
+		
+		if (_healthSystem == null)
+		{
+			Debug.LogWarning($"HealthSystem is not assigned on {gameObject.name}", this);
+		}
+	}
+	
+	// Runtime validation with errors
+	private void Awake()
+	{
+		ValidateReferences();
+	}
+	
+	private void ValidateReferences()
+	{
+		var missingRefs = new System.Collections.Generic.List<string>();
+		
+		if (_rigidbody == null) missingRefs.Add(nameof(_rigidbody));
+		if (_healthSystem == null) missingRefs.Add(nameof(_healthSystem));
+		if (_weaponSystem == null) missingRefs.Add(nameof(_weaponSystem));
+		
+		if (missingRefs.Count > 0)
+		{
+			Debug.LogError($"Missing references on {gameObject.name}: {string.Join(", ", missingRefs)}", this);
+			#if UNITY_EDITOR
+			UnityEditor.EditorApplication.isPaused = true;
+			#endif
+		}
+	}
+}
+```
+
+### Component Communication Patterns
+
+**Understand both child-to-parent and parent-to-child patterns, choosing based on context.**
+
+Unity components can communicate through two primary patterns, each with distinct advantages. Choose based on your specific requirements for modularity, performance, and control.
+
+#### Pattern 1: Child-to-Parent Lookup with Subscriptions
+
+Children look up through the hierarchy to find dependencies and subscribe to changes:
+
+```csharp
+// Child component looks up and subscribes
+public class PlayerColorIndicator : MonoBehaviour
+{
+	[SerializeField] private Renderer _renderer;
+	private IPlayerState _playerState;
+	private MaterialPropertyBlock _propertyBlock;
+	
+	private void Start()
+	{
+		_propertyBlock = new MaterialPropertyBlock();
+		
+		// Look up through hierarchy for player state
+		_playerState = GetComponentInParent<IPlayerState>();
+		if (_playerState != null)
+		{
+			// Subscribe to changes
+			_playerState.OnHealthChanged += UpdateColorBasedOnHealth;
+			_playerState.OnStateChanged += UpdateColorBasedOnState;
+			
+			// Initial update
+			UpdateColorBasedOnHealth(_playerState.CurrentHealth);
+		}
+	}
+	
+	private void UpdateColorBasedOnHealth(float health)
+	{
+		var healthPercent = health / _playerState.MaxHealth;
+		var color = Color.Lerp(Color.red, Color.green, healthPercent);
+		
+		_renderer.GetPropertyBlock(_propertyBlock);
+		_propertyBlock.SetColor("_Color", color);
+		_renderer.SetPropertyBlock(_propertyBlock);
+	}
+	
+	private void OnDestroy()
+	{
+		// Unsubscribe to prevent memory leaks
+		if (_playerState != null)
+		{
+			_playerState.OnHealthChanged -= UpdateColorBasedOnHealth;
+			_playerState.OnStateChanged -= UpdateColorBasedOnState;
+		}
+	}
+}
+```
+
+**Advantages:**
+- **Modularity** - Components are self-contained and can be dropped anywhere in appropriate hierarchies
+- **Open/Closed Principle** - Parents open for extension without modification
+- **Dynamic hierarchies** - Runtime spawned/destroyed objects automatically participate
+- **Designer-friendly** - Non-programmers can add/remove components without code changes
+- **Scalability** - New reactive components require zero parent changes
+
+**Disadvantages:**
+- **Hidden dependencies** - Parent requirements not explicit in child Inspector
+- **Subscription management** - Must handle unsubscribing to prevent memory leaks
+- **Performance overhead** - Each child performs its own lookup
+- **Debugging complexity** - Event chains can be harder to trace
+
+**Best for:**
+- UI elements reacting to game state
+- Optional visual/audio feedback components
+- Modular systems where components may be added/removed frequently
+- Designer-configured behaviors
+
+#### Pattern 2: Parent-to-Child Direct Control
+
+Parent maintains references to children and directly controls them:
+
+```csharp
+// Parent directly manages children
+public class WeaponSystem : MonoBehaviour
+{
+	[Header("Core Components")]
+	[SerializeField] private ProjectileLauncher _launcher;
+	[SerializeField] private AmmoDisplay _ammoDisplay;
+	[SerializeField] private MuzzleFlash _muzzleFlash;
+	
+	private int _currentAmmo = 30;
+	
+	private void Start()
+	{
+		// Initialize all controlled components
+		_ammoDisplay.SetAmmo(_currentAmmo);
+		_muzzleFlash.Initialize(this);
+	}
+	
+	public void Fire()
+	{
+		if (_currentAmmo <= 0) return;
+		
+		// Direct, ordered control of components
+		_launcher.Launch(CalculateDamage());
+		_muzzleFlash.Play();
+		_currentAmmo--;
+		_ammoDisplay.SetAmmo(_currentAmmo);
+		
+		// Parent controls exact execution order and can optimize
+		if (_currentAmmo == 0)
+		{
+			_ammoDisplay.ShowEmptyWarning();
+		}
+	}
+}
+```
+
+**Advantages:**
+- **Explicit control flow** - Clear, predictable data flow from authoritative source
+- **Performance optimization** - Batch updates, control order, skip unnecessary calls
+- **Debugging clarity** - Stack traces show clear parent→child chains
+- **Memory safety** - No subscription leaks or weak reference management
+- **Guaranteed execution order** - Parent controls exact sequence of operations
+
+**Disadvantages:**
+- **Tight coupling** - Parent must know about all child types
+- **Rigid hierarchies** - Adding new child types requires parent modification
+- **Violates Open/Closed** - Parent needs changes for new functionality
+- **Less reusable** - Children depend on specific parent implementation
+
+**Best for:**
+- Critical gameplay systems requiring precise control
+- Performance-critical updates (particle systems, LOD management)
+- Systems where parent owns children lifecycle completely
+- Deterministic systems requiring exact execution order
+
+#### Choosing Between Patterns
+
+Consider these factors when selecting a communication pattern:
+
+| Factor | Child-to-Parent | Parent-to-Child |
+|--------|----------------|-----------------|
+| **Component is optional** | ✅ Preferred | ❌ Avoid |
+| **Need exact execution order** | ❌ Difficult | ✅ Natural |
+| **Designer needs to add/remove** | ✅ Excellent | ❌ Requires setup |
+| **Performance critical** | ⚠️ Consider overhead | ✅ Can optimize |
+| **Component reusability** | ✅ High | ❌ Low |
+| **Debugging requirements** | ⚠️ Event chains | ✅ Direct calls |
+| **Memory management** | ⚠️ Must unsubscribe | ✅ Simple |
+
+#### Hybrid Approach
+
+Often the best solution combines both patterns:
+
+```csharp
+public class PlayerSystem : MonoBehaviour
+{
+	// Critical components use direct references
+	[Header("Core Systems")]
+	[SerializeField] private PlayerMovement _movement;
+	[SerializeField] private WeaponController _weapon;
+	
+	// Optional components use events
+	public event System.Action<float> OnHealthChanged;
+	public event System.Action<PlayerState> OnStateChanged;
+	
+	private void UpdateHealth(float newHealth)
+	{
+		_health = newHealth;
+		
+		// Direct control for critical components
+		if (_health <= 0)
+		{
+			_movement.DisableMovement();
+			_weapon.DisableWeapons();
+		}
+		
+		// Events for optional listeners
+		OnHealthChanged?.Invoke(_health);
+	}
+}
+
+// Optional UI component uses child-to-parent
+public class HealthBarUI : MonoBehaviour
+{
+	private void Start()
+	{
+		var player = GetComponentInParent<PlayerSystem>();
+		if (player != null)
+		{
+			player.OnHealthChanged += UpdateHealthBar;
+		}
+	}
+}
+```
+
+#### Using Interfaces for Flexibility
+
+Regardless of pattern choice, interfaces provide flexibility:
+
+```csharp
+public interface IHealth
+{
+	float CurrentHealth { get; }
+	float MaxHealth { get; }
+	event System.Action<float> OnHealthChanged;
+	event System.Action OnDeath;
+}
+
+// Works with either pattern
+public class HealthDisplay : MonoBehaviour
+{
+	[SerializeField] private bool _searchInParents = true;
+	[SerializeField] private Image _healthBar;
+	
+	// Can be assigned in Inspector (parent-to-child)
+	// or found at runtime (child-to-parent)
+	private IHealth _healthSource;
+	
+	private void Start()
+	{
+		if (_healthSource == null && _searchInParents)
+		{
+			_healthSource = GetComponentInParent<IHealth>();
+		}
+		
+		if (_healthSource != null)
+		{
+			_healthSource.OnHealthChanged += UpdateDisplay;
+			UpdateDisplay(_healthSource.CurrentHealth);
+		}
+	}
+	
+	private void UpdateDisplay(float health)
+	{
+		_healthBar.fillAmount = health / _healthSource.MaxHealth;
+	}
+}
+```
+
+**Key Principle:** Choose the pattern that best matches your component's relationship and requirements. Critical, owned components benefit from direct control, while optional, modular components thrive with lookup patterns.
 
 ### Async/Await Over Coroutines
 
