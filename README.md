@@ -2570,24 +2570,63 @@ release/2.0.0-beta
    - Only bug fixes and release preparation on this branch
    - No new features
 
-3. **Create PR from release branch to `main`**
+3. **Tag the release branch commit:**
+   ```bash
+   git checkout release/1.0.1
+   git tag -a v1.0.1 -m "Release version 1.0.1"
+   git push origin release/1.0.1 --tags
+   ```
 
-4. **Merge release to `main` and tag:**
+   ⚠️ **Important: Tag the release branch BEFORE merging**
+
+   Tag the release branch commit first, then merge that tagged commit into main and develop. This ensures:
+   - **Tag travels with the commit**: The tagged commit becomes part of both main and develop's history
+   - **Tag exists in all branches**: The tag references a commit that exists in the ancestry of main and develop
+   - **Clean history**: All branches share the same tagged commit in their history
+
+4. **Create PR from release branch to `main`**
+
+5. **Merge tagged release to `main`:**
    ```bash
    git checkout main
    git merge release/1.0.1
-   git tag -a v1.0.1 -m "Release version 1.0.1"
-   git push origin main --tags
+   git push origin main
    ```
 
-5. **Merge release changes back to `develop`:**
+   ⚠️ **Critical: Use regular merge (NOT squash merge) for release branches**
+
+   When merging release branches, always use a regular merge instead of squash merge:
+
+   - **Tags must reference actual commits**: The tag points to a specific commit SHA that must exist in branch history
+   - **Squash creates orphaned tags**: Squash merge creates a new commit with a new SHA, orphaning the tagged commit
+   - **History preservation**: The tagged commit must exist in the ancestry of both main and develop
+   - **Cherry-pick capability**: Future cherry-picks from the tagged release require the commit to exist in history
+
+   ```bash
+   # ❌ WRONG - Creates orphaned tag
+   git tag v1.0.1  # Tag on release branch
+   git checkout main
+   git merge --squash release/1.0.1  # Creates NEW commit
+   git commit -m "Release 1.0.1"
+   # Tagged commit from release branch is orphaned - not in main's history!
+
+   # ✅ CORRECT - Tag travels with merge
+   git tag v1.0.1  # Tag on release branch
+   git checkout main
+   git merge release/1.0.1  # Regular merge preserves commits
+   # Tagged commit is now in main's history
+   ```
+
+6. **Merge release changes back to `develop`:**
    ```bash
    git checkout develop
    git merge release/1.0.1
    git push origin develop
    ```
 
-6. **Delete release branch:**
+   The tagged commit is now in the history of main, develop, and the release branch.
+
+7. **Delete release branch:**
    ```bash
    git branch -d release/1.0.1
    git push origin --delete release/1.0.1
@@ -2665,22 +2704,34 @@ Hotfix strategy depends on whether the fix is for production or pre-production c
 
 2. **Fix and test on hotfix branch**
 
-3. **Merge to `main` and tag:**
+3. **Tag the hotfix branch commit:**
+   ```bash
+   git checkout hotfix/1.0.2-critical-bug
+   git tag -a v1.0.2 -m "Hotfix: Critical bug fix"
+   git push origin hotfix/1.0.2-critical-bug --tags
+   ```
+
+   ⚠️ **Important: Tag the hotfix branch BEFORE merging**, just like with release branches. This ensures the tagged commit travels into both main and develop's history.
+
+4. **Merge tagged hotfix to `main`:**
    ```bash
    git checkout main
    git merge hotfix/1.0.2-critical-bug
-   git tag -a v1.0.2 -m "Hotfix: Critical bug fix"
-   git push origin main --tags
+   git push origin main
    ```
 
-4. **Merge to `develop`:**
+   ⚠️ **Critical: Use regular merge (NOT squash merge) for hotfix branches that will be tagged.** See the tagged branch explanation in the Release Workflow section above for details on why squash merge orphans tagged commits.
+
+5. **Merge to `develop`:**
    ```bash
    git checkout develop
    git merge hotfix/1.0.2-critical-bug
    git push origin develop
    ```
 
-5. **Delete hotfix branch:**
+   The tagged commit is now in the history of main, develop, and the hotfix branch.
+
+6. **Delete hotfix branch:**
    ```bash
    git branch -d hotfix/1.0.2-critical-bug
    git push origin --delete hotfix/1.0.2-critical-bug
@@ -2688,7 +2739,7 @@ Hotfix strategy depends on whether the fix is for production or pre-production c
 
 **When production bug applies but develop has diverged significantly:**
 
-1. **Follow steps 1-3 above (create, fix, merge to main, tag)**
+1. **Follow steps 1-4 above (create, fix, tag hotfix branch, merge to main)**
 
 2. **Cherry-pick the fix to `develop`:**
    ```bash
@@ -2747,7 +2798,7 @@ git checkout -b fix/memory-leak
 | **Feature branch sync** | Merge from develop | **Same** (merge from develop) |
 | **Hotfix branches** | Always from main to main+develop | **Context-dependent** (merge or cherry-pick based on divergence) |
 | **Branch naming** | `feature/`, `hotfix/`, `release/` | **Shorthand:** `feat/`, `hotfix/`, `release/`, `fix/` |
-| **Release branch merging** | Merged to both main and develop | **Same** (but may squash on develop) |
+| **Release branch merging** | Merged to both main and develop | **Regular merge to main and develop** (never squash - preserves tag references) |
 
 **Rationale for squash and merge:**
 - **Clean, readable history** - `develop` shows features, not implementation details
@@ -2777,6 +2828,53 @@ git merge --no-ff feat/large-multiplayer-system
 ```
 
 Use judgment: squash for typical features, regular merge for large multi-part features where sub-feature detail adds value.
+
+**Exception for tagged branches (releases and hotfixes):**
+
+**Never use squash merge when merging branches that have been tagged.** This is the most critical exception to the squash-merge preference.
+
+**Correct workflow:**
+1. Tag the branch commit first (e.g., on `release/1.0.1`)
+2. Use regular merge to merge the tagged commit into main and develop
+3. The tag travels with the commit into all branches
+
+**What happens with squash merge (incorrect):**
+1. Tag the branch commit
+2. Squash merge creates a NEW commit with a different SHA
+3. The original tagged commit is orphaned from the history
+4. When merged to other branches (like develop), the tagged commit doesn't exist in their history
+
+**Impact of orphaned tags:**
+- Git history becomes confusing - the tag points to a commit that isn't in develop's ancestry
+- Cherry-picking from tagged releases fails because the commit doesn't exist
+- `git describe` and version tracking tools may behave unexpectedly
+- Harder to understand what code was actually released
+- The tagged commit exists only on the source branch, not in main or develop
+
+This applies to:
+- ✅ **Release branches** (`release/1.0.1`) - Tag first, then regular merge
+- ✅ **Hotfix branches** (`hotfix/1.0.2`) - Tag first, then regular merge
+- ✅ **Any branch** that receives a version tag
+
+```bash
+# ❌ NEVER do this for branches that have been tagged
+git checkout release/1.0.1
+git tag v1.0.1  # Tag on release branch
+git checkout main
+git merge --squash release/1.0.1  # Creates NEW commit!
+git commit -m "Release 1.0.1"
+# Tagged commit is orphaned - only exists on release/1.0.1, not in main!
+
+# ✅ ALWAYS do this for branches that have been tagged
+git checkout release/1.0.1
+git tag v1.0.1  # Tag on release branch
+git checkout main
+git merge release/1.0.1  # Regular merge preserves commits
+# Tagged commit now exists in main's history
+git checkout develop
+git merge release/1.0.1  # Regular merge preserves commits
+# Tagged commit now exists in develop's history too
+```
 
 ### Commit Messages
 
