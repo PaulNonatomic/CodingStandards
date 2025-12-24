@@ -20,6 +20,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Classes/Structs/Methods**: `PascalCase`
 - **Interfaces**: `IPascalCase` (prefix with `I`)
 - **Public properties**: `PascalCase`
+- **Protected fields**: `PascalCase`
 - **Private fields**: `_camelCase` (underscore prefix)
 - **Parameters/local variables**: `camelCase`
 - **Constants**: `PascalCase`
@@ -36,7 +37,7 @@ These coding standards are based on [Microsoft's C# Coding Conventions](https://
 - **Using statements**: Prefer `using var` declarations over block-scoped
 
 ### Code Organization
-- **Member ordering**: Public → Serialized protected → Serialized private → Protected → Private
+- **Member ordering**: Public → Serialized protected → Serialized private → Internal / Explicit interface → Protected → Private
 - **Never nester**: Favor early returns, guard clauses, and abstracted methods
 - **SOLID principles**: Emphasize Single Responsibility Principle
 - **Readability over performance**: Favor clarity where complexity has interpretation cost
@@ -124,13 +125,14 @@ public async UniTask LoadSceneAsync(CancellationToken cancellationToken)
 ### Properties and Fields
 
 - **PascalCase** for public properties
-- **camelCase** for private fields
-- Prefix private fields with underscore `_`
+- **PascalCase** for protected fields (including serialized protected fields)
+- **camelCase** for private fields, prefixed with underscore `_`
 - **PascalCase** for public fields (discouraged, prefer properties)
 - Use `[field: SerializeField]` to expose auto-property backing fields in Unity Inspector
 
 ```csharp
 public int MaxHealth { get; private set; }
+protected float JumpForce;
 private int _currentHealth;
 private readonly Transform _transform;
 
@@ -482,65 +484,86 @@ Organize properties and methods in the following order:
 1. **Public** members (the class's public API, including serialized public properties)
 2. **Serialized protected** fields (Inspector-exposed and inheritable)
 3. **Serialized private** fields (Inspector-exposed but internal)
-4. **Protected** members (extension points for derived classes)
-5. **Private** members (internal implementation details)
+4. **Internal** members (assembly-visible implementation)
+5. **Explicit interface implementations** (treat like internal—accessible only through the interface)
+6. **Protected** members (extension points for derived classes)
+7. **Private** members (internal implementation details)
 
 Within each access level, group similar members together (properties, then methods). Serialized fields maintain the access hierarchy even though they're exposed in the Inspector.
 
 ```csharp
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, IDamageable
 {
 	// 1. Public properties and fields (API surface)
 	public int MaxHealth { get; private set; } = 100;
 	public float MoveSpeed { get; set; } = 5f;
 	[field: SerializeField] public int StartingHealth { get; private set; }
-	
+
 	// 2. Serialized protected fields (Inspector-exposed, inheritable)
-	[SerializeField] protected float _jumpForce = 10f;
-	[SerializeField] protected LayerMask _groundLayers;
-	
+	[SerializeField] protected float JumpForce = 10f;
+	[SerializeField] protected LayerMask GroundLayers;
+
 	// 3. Serialized private fields (Inspector-exposed, internal)
 	[SerializeField] private GameObject _playerModel;
 	[SerializeField] private AudioClip _jumpSound;
 	[SerializeField] private Rigidbody _rigidbody;
-	
-	// 4. Protected members (for inheritance)
+
+	// 4. Internal members (assembly-visible)
+	internal int DebugHealthOverride { get; set; }
+
+	internal void ResetForTesting()
+	{
+		_currentHealth = StartingHealth;
+		_isGrounded = false;
+	}
+
+	// 5. Explicit interface implementations (accessible only via interface)
+	bool IDamageable.IsInvulnerable => _isInvulnerable;
+
+	void IDamageable.ApplyDamage(int amount, DamageType type)
+	{
+		var modifiedDamage = CalculateDamage(amount, type);
+		TakeDamage(modifiedDamage);
+	}
+
+	// 6. Protected members (for inheritance)
 	protected virtual float DamageMultiplier => 1.0f;
-	
-	// 5. Private fields (internal state)
+
+	// 7. Private fields (internal state)
 	private int _currentHealth;
 	private bool _isGrounded;
-	
-	// 6. Public methods (API)
+	private bool _isInvulnerable;
+
+	// 8. Public methods (API)
 	public void TakeDamage(int damage)
 	{
 		_currentHealth = Mathf.Max(0, _currentHealth - damage);
 		OnDamageTaken(damage);
 	}
-	
+
 	public void Jump()
 	{
 		if (!_isGrounded) return;
-		_rigidbody.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse);
+		_rigidbody.AddForce(Vector3.up * JumpForce, ForceMode.Impulse);
 	}
-	
-	// 7. Protected methods (extensibility points)
+
+	// 9. Protected methods (extensibility points)
 	protected virtual void Start()
 	{
 		_currentHealth = StartingHealth;
 	}
-	
+
 	protected virtual void OnDamageTaken(int damage)
 	{
 		// Override point for derived classes
 	}
-	
-	// 8. Private methods (implementation details)
+
+	// 10. Private methods (implementation details)
 	private void UpdateGroundedState()
 	{
 		_isGrounded = Physics.Raycast(transform.position, Vector3.down, 1.1f);
 	}
-	
+
 	private void PlayJumpSound()
 	{
 		if (_jumpSound != null)
@@ -548,12 +571,19 @@ public class PlayerController : MonoBehaviour
 			AudioSource.PlayClipAtPoint(_jumpSound, transform.position);
 		}
 	}
+
+	private int CalculateDamage(int amount, DamageType type)
+	{
+		return Mathf.RoundToInt(amount * DamageMultiplier);
+	}
 }
 ```
 
-**Rationale:** 
+**Rationale:**
 - **Public-first approach** makes the class's API immediately visible to consumers
 - **Serialized fields follow public** because they're part of the class's Unity Inspector interface (quasi-public)
+- **Internal members after serialized fields** because they're assembly-visible but not part of the public API
+- **Explicit interface implementations treated as internal** because they're only accessible through the interface type, not through the class itself directly
 - **Protected members before private** maintains the hierarchy of accessibility
 - **Implementation details last** keeps focus on the interface rather than internals
 - This ordering creates a natural flow from "what the class does" (public API) to "how it does it" (private implementation)
