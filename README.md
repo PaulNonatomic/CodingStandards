@@ -10,6 +10,11 @@ When working as part of an established team, **it is crucial to adapt to the tea
 
 These standards are shared openly in the hope that they may be useful to others, but they should be adapted and modified to suit your team's needs and context.
 
+## Support
+If you like my work then please consider showing your support by buying me a brew
+<br><br>
+<a href="https://www.buymeacoffee.com/nonatomic" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## Foundation
 
 These coding standards are based on [Microsoft's C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) and [.NET Naming Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines), with specific adaptations for Unity development and team preferences.
